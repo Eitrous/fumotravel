@@ -123,8 +123,9 @@ const createThumbnailMarker = (
     image.alt = featureProps.title
     el.append(image)
   } else {
-    const fallback = document.createElement('span')
-    fallback.textContent = 'Fumo'
+    const fallback = document.createElement('i')
+    fallback.className = 'fa-solid fa-camera'
+    fallback.setAttribute('aria-hidden', 'true')
     el.append(fallback)
   }
 

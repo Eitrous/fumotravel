@@ -1,7 +1,7 @@
 {
   "common": {
     "brand": "Fumo Spots",
-    "brandTagline": "東方 Project ファンの旅写真を世界地図へ戻す",
+    "brandTagline": "マップワークスペース",
     "authorIdUnset": "作者 ID 未設定",
     "login": "ログイン",
     "submit": "投稿",
@@ -10,6 +10,7 @@
     "language": "言語",
     "close": "閉じる",
     "closePanel": "パネルを閉じる",
+    "openPanel": "パネルを開く",
     "toggleThemeToLight": "ライトテーマに切り替え",
     "toggleThemeToDark": "ダークテーマに切り替え",
     "backToMapOverview": "地図の概要へ戻る",
@@ -34,25 +35,31 @@
   },
   "workbench": {
     "eyebrow": "マップワークスペース",
-    "title": "fumo の旅写真を世界地図にピン留めしよう。",
-    "description": "左側は公開マップ、右側は操作パネルです。ピンをクリックして詳細を見て、ログイン後に自分の写真を投稿できます。承認されると地図に表示されます。",
+    "title": "ピンを開くか、新しい投稿を始める。",
+    "description": "地図は閲覧用。操作はここで行う。",
+    "posterGreeting": "こんにちは",
+    "posterIntro": "Fumo Spots へようこそ",
+    "posterExplore": "世界各地の fumo 写真を見る",
+    "posterShareLead": "あるいは",
+    "posterShare": "自分の一枚を共有する",
+    "posterClosing": "次の投稿を待っています。",
     "actions": {
-      "login": "ログインして投稿する",
-      "submit": "新しい写真を投稿する",
+      "login": "ログイン",
+      "submit": "投稿を始める",
       "overview": "概要に戻る"
     },
     "facts": {
       "browse": {
-        "title": "見方",
-        "body": "縮小時は世界全体の分布を確認でき、拡大するとサムネイル表示に切り替わって各投稿を探しやすくなります。"
+        "title": "ズームで閲覧",
+        "body": "縮小で分布、拡大でサムネイル。"
       },
       "publicLocation": {
-        "title": "公開位置",
-        "body": "作者は正確な座標を公開することも、概略位置だけを公開することもできます。正確な撮影位置は審査用にバックエンドへ保存されます。"
+        "title": "公開精度",
+        "body": "地図には公開位置だけが表示されます。"
       },
       "submission": {
         "title": "投稿内容",
-        "body": "各写真には作者 ID、場所、撮影時間、メッセージを添えられ、みんなで広がる fumo 旅地図を作れます。"
+        "body": "写真、場所、作者 ID、メモを含みます。"
       }
     }
   },
@@ -73,8 +80,8 @@
   },
   "auth": {
     "eyebrow": "マジックリンクログイン",
-    "title": "まずログインして、fumo を旅に出そう。",
-    "description": "初回ログイン後に公開用の作者 ID を設定します。以後の投稿、審査状態、詳細ページはこの ID を軸に表示されます。",
+    "title": "投稿するにはログイン。",
+    "description": "メールのリンクからこのパネルへ戻れます。",
     "emailLabel": "メールアドレス",
     "sendLink": "ログインリンクを送信",
     "sending": "送信中…",
@@ -88,8 +95,8 @@
   },
   "onboarding": {
     "eyebrow": "作者 ID",
-    "title": "地図に表示される作者 ID を設定しましょう。",
-    "description": "この ID は各公開投稿の詳細に表示されます。3〜24 文字の英字、数字、アンダースコア、ハイフンを推奨します。",
+    "title": "公開投稿に表示する作者 ID を設定する。",
+    "description": "この ID は公開投稿ごとに表示されます。",
     "label": "作者 ID",
     "hint": "例: `reimu_tabi`、`alice_fumo`、`world_trip_01`。",
     "submit": "設定を保存",
@@ -121,8 +128,8 @@
   },
   "submit": {
     "eyebrow": "写真を投稿",
-    "title": "fumo の旅写真をアップロードする。",
-    "description": "写真を選び、地点を決め、最後に公開精度を選びます。公開サイトと詳細ページでは公開位置のみを使用し、審査用の正確な座標は公開されません。",
+    "title": "写真をアップロードして公開位置を決める。",
+    "description": "公開サイトには公開位置だけが表示されます。",
     "photoSectionTitle": "1. 写真を選ぶ",
     "photoSectionDescription": "画像に EXIF の座標や撮影日時があれば自動で読み取りを試みます。EXIF がなくても地図上で手動指定できます。",
     "exifReading": "EXIF を読み込み中…",

@@ -1,42 +1,25 @@
 <script setup lang="ts">
-const auth = useAuthState()
 const { t } = useI18n()
-
-const emit = defineEmits<{
-  login: []
-  submit: []
-  info: []
-}>()
 </script>
 
 <template>
-  <section class="workbench-panel">
-    <h1 class="workbench-panel__title">{{ t('workbench.title') }}</h1>
+  <section class="workbench-panel workbench-panel--poster workbench-panel--home">
+    <p class="workbench-poster__hello">{{ t('workbench.posterGreeting') }}</p>
 
-    <div class="workbench-panel__actions">
-      <button
-        v-if="!auth.viewer.value"
-        class="button"
-        type="button"
-        @click="emit('login')"
-      >
-        <i class="button-icon fa-solid fa-right-to-bracket" aria-hidden="true" />
-        <span>{{ t('workbench.actions.login') }}</span>
-      </button>
-      <button
-        v-else
-        class="button"
-        type="button"
-        @click="emit('submit')"
-      >
-        <i class="button-icon fa-solid fa-paper-plane" aria-hidden="true" />
-        <span>{{ t('workbench.actions.submit') }}</span>
-      </button>
-      <button class="ghost-button" type="button" @click="emit('info')">
-        <i class="button-icon fa-solid fa-map-location-dot" aria-hidden="true" />
-        <span>{{ t('workbench.actions.overview') }}</span>
-      </button>
+    <div class="workbench-poster__block">
+      <p class="workbench-poster__lead">{{ t('workbench.posterIntro') }}</p>
+      <h2 class="workbench-panel__title workbench-panel__title--poster">
+        {{ t('workbench.posterExplore') }}
+      </h2>
     </div>
 
+    <div class="workbench-poster__block">
+      <p class="workbench-poster__lead">{{ t('workbench.posterShareLead') }}</p>
+      <h2 class="workbench-panel__title workbench-panel__title--poster">
+        {{ t('workbench.posterShare') }}
+      </h2>
+    </div>
+
+    <p class="workbench-poster__closing">{{ t('workbench.posterClosing') }}</p>
   </section>
 </template>

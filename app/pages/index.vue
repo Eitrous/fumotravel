@@ -12,6 +12,7 @@ useSeoMeta({
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthState()
+const toolbarController = provideWorkbenchToolbarActionController()
 
 const isMobile = ref(false)
 const mobileSheetOpen = ref(false)
@@ -29,6 +30,73 @@ const panelKey = computed(() => {
     : currentPanel.value
 })
 
+const brandWords = computed(() => {
+  const parts = t('common.brand').split(' ')
+  const top = parts[0] || t('common.brand')
+  const bottom = parts.slice(1).join(' ') || top
+  return {
+    top,
+    bottom
+  }
+})
+
+const viewerHandle = computed(() => {
+  const username = auth.viewer.value?.profile.username
+  return username ? `@${username}` : t('common.authorIdUnset')
+})
+
+const leadingAction = computed(() => {
+  if (currentPanel.value !== 'info') {
+    return {
+      label: t('common.backToMapOverview'),
+      icon: 'fa-arrow-left',
+      run: openInfoPanel
+    }
+  }
+
+  if (isMobile.value) {
+    return {
+      label: mobileSheetOpen.value ? t('common.closePanel') : t('common.openPanel'),
+      icon: mobileSheetOpen.value ? 'fa-xmark' : 'fa-chevron-up',
+      run: toggleMobileSheet
+    }
+  }
+
+  return null
+})
+
+const defaultPrimaryAction = computed(() => ({
+  label: t('common.submit'),
+  icon: 'fa-paper-plane',
+  run: openSubmitPanel,
+  disabled: false,
+  loading: false
+}))
+
+const primaryToolbarAction = computed(() => {
+  return toolbarController.currentAction.value || defaultPrimaryAction.value
+})
+
+const primaryActionLabel = computed(() => {
+  return resolveToolbarValue(primaryToolbarAction.value?.label, t('common.submit'))
+})
+
+const primaryActionDisabled = computed(() => {
+  return resolveToolbarValue(primaryToolbarAction.value?.disabled, false)
+})
+
+const primaryActionLoading = computed(() => {
+  return resolveToolbarValue(primaryToolbarAction.value?.loading, false)
+})
+
+const primaryActionIcon = computed(() => {
+  if (primaryActionLoading.value) {
+    return 'fa-spinner fa-spin'
+  }
+
+  return resolveToolbarValue(primaryToolbarAction.value?.icon, 'fa-paper-plane')
+})
+
 const syncViewportMode = () => {
   isMobile.value = viewportQuery?.matches ?? false
 
@@ -37,14 +105,14 @@ const syncViewportMode = () => {
   }
 }
 
-const openPanel = async (
+async function openPanel(
   panel: WorkbenchPanel,
   options: {
     postId?: number | null
     next?: string | null
     revealMobile?: boolean
   } = {}
-) => {
+) {
   await navigateTo(createWorkbenchLocation(panel, {
     postId: options.postId,
     next: options.next
@@ -55,17 +123,17 @@ const openPanel = async (
   }
 }
 
-const openInfoPanel = async () => {
+async function openInfoPanel() {
   await openPanel('info')
 }
 
-const openLoginPanel = async (target = submitPath.value) => {
+async function openLoginPanel(target = submitPath.value) {
   await openPanel('login', {
     next: target
   })
 }
 
-const openSubmitPanel = async () => {
+async function openSubmitPanel() {
   await auth.init()
 
   if (!auth.user.value) {
@@ -83,21 +151,44 @@ const openSubmitPanel = async () => {
   await openPanel('submit')
 }
 
-const handleMarkerSelection = async (postId: number) => {
+async function handleMarkerSelection(postId: number) {
   await openPanel('post', {
     postId
   })
 }
 
-const closeMobileSheet = async () => {
+async function closeMobileSheet() {
   mobileSheetOpen.value = false
   await navigateTo(createWorkbenchLocation('info'))
 }
 
-const handleSignOut = async () => {
+async function toggleMobileSheet() {
+  if (!isMobile.value) {
+    return
+  }
+
+  if (mobileSheetOpen.value) {
+    await closeMobileSheet()
+    return
+  }
+
+  mobileSheetOpen.value = true
+}
+
+async function handleSignOut() {
   await auth.signOut()
   await navigateTo('/')
   mobileSheetOpen.value = false
+}
+
+async function triggerPrimaryAction() {
+  const action = primaryToolbarAction.value
+
+  if (!action || primaryActionDisabled.value || primaryActionLoading.value) {
+    return
+  }
+
+  await action.run()
 }
 
 watch(
@@ -131,107 +222,115 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="workbench-page">
-    <section class="workbench-map-shell">
-      <WorldMap
-        :selected-post-id="selectedPostId"
-        @select-post="handleMarkerSelection"
-      />
-    </section>
-
-    <button
-      v-if="isMobile && mobileSheetOpen"
-      class="workbench-sheet-backdrop"
-      type="button"
-      :aria-label="t('common.closePanel')"
-      @click="closeMobileSheet"
-    />
-
     <aside
       class="workbench-sidebar"
       :class="{ 'is-open': !isMobile || mobileSheetOpen }"
     >
       <div class="workbench-sidebar__surface">
         <div class="workbench-sidebar__chrome">
-          <div class="workbench-navbar">
-            <button
-              class="ghost-button nav-button nav-button--icon-only"
-              type="button"
-              @click="toggleTheme"
-              :aria-label="isDark ? t('common.toggleThemeToLight') : t('common.toggleThemeToDark')"
-            >
-              <i class="button-icon fa-solid" :class="isDark ? 'fa-sun' : 'fa-moon'" aria-hidden="true" />
-              <span class="sr-only">{{ isDark ? t('common.toggleThemeToLight') : t('common.toggleThemeToDark') }}</span>
-            </button>
-            <LocaleSwitcher class="nav-button" />
+          <div class="workbench-sidebar__header">
+            <div class="workbench-brand" :aria-label="t('common.brand')">
+              <span class="workbench-brand__word workbench-brand__word--top">{{ brandWords.top }}</span>
+              <span class="workbench-brand__word workbench-brand__word--bottom">{{ brandWords.bottom }}</span>
+            </div>
 
-            <template v-if="auth.ready.value && auth.viewer.value">
-              <span class="author-pill nav-button">
-                @{{ auth.viewer.value.profile.username || t('common.authorIdUnset') }}
-              </span>
+            <div class="workbench-tools">
+              <button
+                v-if="leadingAction"
+                class="workbench-icon-button"
+                type="button"
+                :title="leadingAction.label"
+                :aria-label="leadingAction.label"
+                @click="leadingAction.run"
+              >
+                <i class="button-icon fa-solid" :class="leadingAction.icon" aria-hidden="true" />
+                <span class="sr-only">{{ leadingAction.label }}</span>
+              </button>
+
+              <button
+                class="workbench-icon-button"
+                type="button"
+                :title="isDark ? t('common.toggleThemeToLight') : t('common.toggleThemeToDark')"
+                :aria-label="isDark ? t('common.toggleThemeToLight') : t('common.toggleThemeToDark')"
+                @click="toggleTheme"
+              >
+                <i class="button-icon fa-solid" :class="isDark ? 'fa-sun' : 'fa-moon'" aria-hidden="true" />
+                <span class="sr-only">{{ isDark ? t('common.toggleThemeToLight') : t('common.toggleThemeToDark') }}</span>
+              </button>
+
+              <LocaleSwitcher />
 
               <NuxtLink
-                v-if="auth.isAdmin.value"
-                class="ghost-button nav-button"
+                v-if="auth.ready.value && auth.viewer.value && auth.isAdmin.value"
+                class="workbench-icon-button"
                 to="/admin/review"
+                :title="t('common.review')"
+                :aria-label="t('common.review')"
               >
                 <i class="button-icon fa-solid fa-shield-halved" aria-hidden="true" />
-                <span>{{ t('common.review') }}</span>
+                <span class="sr-only">{{ t('common.review') }}</span>
               </NuxtLink>
 
-              <button class="button nav-button" type="button" @click="openSubmitPanel">
-                <i class="button-icon fa-solid fa-paper-plane" aria-hidden="true" />
-                <span>{{ t('common.submit') }}</span>
-              </button>
-
-              <button class="ghost-button nav-button" type="button" @click="handleSignOut">
+              <button
+                v-if="auth.ready.value && auth.viewer.value"
+                class="workbench-icon-button"
+                type="button"
+                :title="t('common.signOut')"
+                :aria-label="t('common.signOut')"
+                @click="handleSignOut"
+              >
                 <i class="button-icon fa-solid fa-right-from-bracket" aria-hidden="true" />
-                <span>{{ t('common.signOut') }}</span>
+                <span class="sr-only">{{ t('common.signOut') }}</span>
               </button>
-            </template>
 
-            <template v-else-if="auth.ready.value">
-              <button class="ghost-button nav-button" type="button" @click="openLoginPanel()">
+              <button
+                v-else-if="auth.ready.value && currentPanel !== 'login'"
+                class="workbench-icon-button"
+                type="button"
+                :title="t('common.login')"
+                :aria-label="t('common.login')"
+                @click="openLoginPanel()"
+              >
                 <i class="button-icon fa-solid fa-right-to-bracket" aria-hidden="true" />
-                <span>{{ t('common.login') }}</span>
+                <span class="sr-only">{{ t('common.login') }}</span>
               </button>
-              <button class="button nav-button" type="button" @click="openSubmitPanel">
-                <i class="button-icon fa-solid fa-paper-plane" aria-hidden="true" />
-                <span>{{ t('common.submit') }}</span>
-              </button>
-            </template>
 
-            <span v-else class="status-inline nav-button">{{ t('common.loadingAuth') }}</span>
+              <button
+                class="workbench-icon-button workbench-icon-button--primary"
+                type="button"
+                :title="primaryActionLabel"
+                :aria-label="primaryActionLabel"
+                :disabled="primaryActionDisabled"
+                @click="triggerPrimaryAction"
+              >
+                <i class="button-icon fa-solid" :class="primaryActionIcon" aria-hidden="true" />
+                <span class="sr-only">{{ primaryActionLabel }}</span>
+              </button>
+            </div>
           </div>
 
-          <button
-            v-if="isMobile"
-            class="ghost-button ghost-button--compact"
-            type="button"
-            @click="closeMobileSheet"
-          >
-            <i class="button-icon fa-solid fa-xmark" aria-hidden="true" />
-            <span>{{ t('common.close') }}</span>
-          </button>
-
-          <button
-            v-else-if="currentPanel !== 'info'"
-            class="text-button"
-            type="button"
-            @click="openInfoPanel"
-          >
-            <i class="button-icon fa-solid fa-arrow-left" aria-hidden="true" />
-            <span>{{ t('common.backToMapOverview') }}</span>
-          </button>
+          <div class="workbench-sidebar__meta">
+            <p
+              v-if="auth.ready.value && auth.viewer.value"
+              class="workbench-sidebar__status"
+            >
+              {{ viewerHandle }}
+            </p>
+            <p
+              v-else-if="auth.ready.value"
+              class="workbench-sidebar__status"
+            >
+              {{ t('common.brandTagline') }}
+            </p>
+            <p v-else class="workbench-sidebar__status">
+              {{ t('common.loadingAuth') }}
+            </p>
+          </div>
         </div>
 
         <Transition name="workbench-panel-fade" mode="out-in">
           <div :key="panelKey" class="workbench-sidebar__body">
-            <WorkbenchInfoPanel
-              v-if="currentPanel === 'info'"
-              @login="openLoginPanel()"
-              @submit="openSubmitPanel"
-              @info="openInfoPanel"
-            />
+            <WorkbenchInfoPanel v-if="currentPanel === 'info'" />
 
             <WorkbenchLoginPanel
               v-else-if="currentPanel === 'login'"
@@ -250,15 +349,25 @@ onBeforeUnmount(() => {
               :post-id="selectedPostId"
             />
 
-            <WorkbenchInfoPanel
-              v-else
-              @login="openLoginPanel()"
-              @submit="openSubmitPanel"
-              @info="openInfoPanel"
-            />
+            <WorkbenchInfoPanel v-else />
           </div>
         </Transition>
       </div>
     </aside>
+
+    <section class="workbench-map-shell">
+      <WorldMap
+        :selected-post-id="selectedPostId"
+        @select-post="handleMarkerSelection"
+      />
+    </section>
+
+    <button
+      v-if="isMobile && mobileSheetOpen"
+      class="workbench-sheet-backdrop"
+      type="button"
+      :aria-label="t('common.closePanel')"
+      @click="closeMobileSheet"
+    />
   </main>
 </template>

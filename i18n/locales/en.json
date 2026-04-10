@@ -1,7 +1,7 @@
 {
   "common": {
     "brand": "Fumo Spots",
-    "brandTagline": "Pin Touhou Project fans' travel photos back onto the world map",
+    "brandTagline": "Map workbench",
     "authorIdUnset": "Author ID not set",
     "login": "Log in",
     "submit": "Submit",
@@ -10,6 +10,7 @@
     "language": "Language",
     "close": "Close",
     "closePanel": "Close panel",
+    "openPanel": "Open panel",
     "toggleThemeToLight": "Switch to light theme",
     "toggleThemeToDark": "Switch to dark theme",
     "backToMapOverview": "Back to map overview",
@@ -34,25 +35,31 @@
   },
   "workbench": {
     "eyebrow": "World Map Workspace",
-    "title": "Pin every fumo travel photo onto the world map.",
-    "description": "The map stays on the left, and every interaction happens on the right. Click a marker for details, then log in to add your own photo and wait for approval.",
+    "title": "Open a marker or start a new post.",
+    "description": "The map stays for browsing. Actions stay here.",
+    "posterGreeting": "Hello",
+    "posterIntro": "Welcome to Fumo Spots",
+    "posterExplore": "Browse fumo photos from around the world",
+    "posterShareLead": "Or",
+    "posterShare": "share your own shot",
+    "posterClosing": "Your next post starts here.",
     "actions": {
-      "login": "Log in and start sharing",
-      "submit": "Submit a new photo",
+      "login": "Log in",
+      "submit": "Start a post",
       "overview": "Return to the overview"
     },
     "facts": {
       "browse": {
-        "title": "How to browse",
-        "body": "Zoomed out, the map shows global distribution. Zoom in and the markers switch to thumbnails so each post is easier to find."
+        "title": "Browse by zoom",
+        "body": "Zoom out for distribution. Zoom in for thumbnails."
       },
       "publicLocation": {
-        "title": "Public location",
-        "body": "Authors can share the exact coordinates or only an approximate point. The precise shooting location still stays in the review backend."
+        "title": "Public precision",
+        "body": "Only the public point is shown on the map."
       },
       "submission": {
-        "title": "What each post includes",
-        "body": "Every photo can carry an author ID, place, capture time, and note, slowly building a shared fumo travel atlas."
+        "title": "Each post",
+        "body": "Photo, place, author ID, and note."
       }
     }
   },
@@ -73,8 +80,8 @@
   },
   "auth": {
     "eyebrow": "Magic Link Login",
-    "title": "Log in first, then send your fumo on its trip.",
-    "description": "After your first login, you will set a public author ID. Future submissions, review states, and post details will all use that identity.",
+    "title": "Log in to submit.",
+    "description": "The email link returns you to this panel.",
     "emailLabel": "Email address",
     "sendLink": "Send login link",
     "sending": "Sending…",
@@ -88,8 +95,8 @@
   },
   "onboarding": {
     "eyebrow": "Author ID",
-    "title": "Pick an author ID that will appear on the map.",
-    "description": "This ID is shown on every public post detail. We recommend 3 to 24 letters, numbers, underscores, or hyphens.",
+    "title": "Set the author ID shown on public posts.",
+    "description": "This ID appears on every public post.",
     "label": "Author ID",
     "hint": "Examples: `reimu_tabi`, `alice_fumo`, `world_trip_01`.",
     "submit": "Save author ID",
@@ -121,8 +128,8 @@
   },
   "submit": {
     "eyebrow": "Submit A Photo",
-    "title": "Upload a fumo travel photo.",
-    "description": "Choose the photo, set the point, then decide how precise the public location should be. The public site only uses the public point, never the exact review coordinates.",
+    "title": "Upload a photo and mark its public location.",
+    "description": "Only the public point appears on the public site.",
     "photoSectionTitle": "1. Choose the photo",
     "photoSectionDescription": "If the image contains EXIF coordinates or capture time, the app will try to read them automatically. Without EXIF, you can still place the point manually on the map.",
     "exifReading": "Reading EXIF…",

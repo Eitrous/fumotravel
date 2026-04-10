@@ -37,6 +37,10 @@ watch(
   { immediate: true }
 )
 
+const canSubmit = computed(() => {
+  return Boolean(email.value.trim()) && !sending.value
+})
+
 const sendMagicLink = async () => {
   errorMessage.value = ''
   successMessage.value = ''
@@ -57,12 +61,21 @@ const sendMagicLink = async () => {
     sending.value = false
   }
 }
+
+useWorkbenchToolbarAction(computed(() => ({
+  label: sending.value ? t('auth.sending') : t('auth.sendLink'),
+  icon: 'fa-envelope',
+  run: sendMagicLink,
+  disabled: !canSubmit.value,
+  loading: sending.value
+})))
 </script>
 
 <template>
-  <section class="workbench-panel">
+  <section class="workbench-panel workbench-panel--poster">
     <span class="eyebrow">{{ t('auth.eyebrow') }}</span>
-    <h2 class="workbench-panel__title">{{ t('auth.title') }}</h2>
+    <h2 class="workbench-panel__title workbench-panel__title--poster">{{ t('auth.title') }}</h2>
+    <p class="workbench-panel__copy workbench-panel__copy--poster">{{ t('auth.description') }}</p>
 
     <label class="field-label">
       <span>{{ t('auth.emailLabel') }}</span>
@@ -75,17 +88,6 @@ const sendMagicLink = async () => {
         @keyup.enter="sendMagicLink"
       >
     </label>
-
-    <div class="workbench-panel__actions">
-      <button class="button" type="button" :disabled="sending" @click="sendMagicLink">
-        <i class="button-icon fa-solid fa-envelope" aria-hidden="true" />
-        <span>{{ sending ? t('auth.sending') : t('auth.sendLink') }}</span>
-      </button>
-      <button class="ghost-button" type="button" @click="navigateTo(createWorkbenchLocation('info'))">
-        <i class="button-icon fa-solid fa-map-location-dot" aria-hidden="true" />
-        <span>{{ t('auth.browseFirst') }}</span>
-      </button>
-    </div>
 
     <p v-if="successMessage" class="success-banner">{{ successMessage }}</p>
     <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>

@@ -1,7 +1,7 @@
 {
   "common": {
     "brand": "Fumo Spots",
-    "brandTagline": "Fumo Spots",
+    "brandTagline": "地图工作台",
     "authorIdUnset": "未设置作者 ID",
     "login": "登录",
     "submit": "投稿",
@@ -10,6 +10,7 @@
     "language": "语言",
     "close": "关闭",
     "closePanel": "关闭面板",
+    "openPanel": "打开面板",
     "toggleThemeToLight": "切换到浅色主题",
     "toggleThemeToDark": "切换到深色主题",
     "backToMapOverview": "返回地图概览",
@@ -34,25 +35,31 @@
   },
   "workbench": {
     "eyebrow": "地图工作台",
-    "title": "把每一张 fumo 旅照钉到世界地图上。",
-    "description": "左侧是公开地图，右侧是操作区。点击图钉查看详情，登录后可以提交自己的照片，管理员审核通过后就会出现在地图上。",
+    "title": "选择图钉查看详情，或开始一条新投稿。",
+    "description": "地图留给浏览，操作都在这里。",
+    "posterGreeting": "你好",
+    "posterIntro": "欢迎来到 Fumo Spots",
+    "posterExplore": "欣赏来自世界各地的 fumo 照片",
+    "posterShareLead": "也可以",
+    "posterShare": "分享你自己的作品",
+    "posterClosing": "期待你的投稿。",
     "actions": {
-      "login": "登录并开始投稿",
-      "submit": "提交一张新照片",
+      "login": "登录",
+      "submit": "开始投稿",
       "overview": "回到地图概览"
     },
     "facts": {
       "browse": {
-        "title": "浏览方式",
-        "body": "缩小时看全球分布，放大后会切成缩略图，方便直接找到每一条投稿。"
+        "title": "缩放浏览",
+        "body": "缩小时看分布，放大后看缩略图。"
       },
       "publicLocation": {
-        "title": "公开位置",
-        "body": "作者可以选择公开精确坐标，也可以只公开近似点位，后台仍会保留精确拍摄位置用于审核。"
+        "title": "公开精度",
+        "body": "地图只显示公开点，不显示精确拍摄点。"
       },
       "submission": {
-        "title": "投稿内容",
-        "body": "每张照片都可以附带作者 ID、地点、拍摄时间和留言，形成一张不断扩展的 fumo 世界旅行图。"
+        "title": "投稿信息",
+        "body": "每条记录包含照片、地点、作者 ID 和留言。"
       }
     }
   },
@@ -73,8 +80,8 @@
   },
   "auth": {
     "eyebrow": "邮箱魔法链接登录",
-    "title": "先登录，再让你的 fumo 正式出发。",
-    "description": "首次登录后我们会引导你设置一个公开作者 ID，之后投稿、审核状态和详情页都会围绕这个 ID 展示。",
+    "title": "登录后即可投稿。",
+    "description": "邮箱链接会把你带回当前面板。",
     "emailLabel": "邮箱地址",
     "sendLink": "发送登录链接",
     "sending": "发送中…",
@@ -88,8 +95,8 @@
   },
   "onboarding": {
     "eyebrow": "作者 ID",
-    "title": "给自己设置一个会出现在地图上的作者 ID。",
-    "description": "这个 ID 会显示在每张公开照片的详情里。建议使用 3 到 24 位的字母、数字、下划线或短横线。",
+    "title": "设置公开显示的作者 ID。",
+    "description": "这个 ID 会显示在每条公开投稿里。",
     "label": "作者 ID",
     "hint": "例如 `reimu_tabi`、`alice_fumo`、`world_trip_01`。",
     "submit": "完成设置",
@@ -121,8 +128,8 @@
   },
   "submit": {
     "eyebrow": "投稿照片",
-    "title": "上传一张 fumo 的旅行照片。",
-    "description": "先选图，再定点，最后决定公开精度。地图和详情页只使用公开位置，不会暴露后台保存的精确坐标。",
+    "title": "上传照片并标记公开位置。",
+    "description": "公开页面只使用公开位置。",
     "photoSectionTitle": "1. 选择照片",
     "photoSectionDescription": "如果图片里带有 EXIF 坐标和拍摄时间，系统会尝试自动读取；没有 EXIF 也可以在地图上手动选点。",
     "exifReading": "正在读取 EXIF…",

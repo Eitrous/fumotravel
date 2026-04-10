@@ -45,6 +45,10 @@ watch(
   { immediate: true }
 )
 
+const canSubmit = computed(() => {
+  return Boolean(username.value.trim()) && !saving.value
+})
+
 const submitUsername = async () => {
   errorMessage.value = ''
 
@@ -72,12 +76,21 @@ const submitUsername = async () => {
     saving.value = false
   }
 }
+
+useWorkbenchToolbarAction(computed(() => ({
+  label: saving.value ? t('onboarding.saving') : t('onboarding.submit'),
+  icon: 'fa-id-card',
+  run: submitUsername,
+  disabled: !canSubmit.value,
+  loading: saving.value
+})))
 </script>
 
 <template>
-  <section class="workbench-panel">
+  <section class="workbench-panel workbench-panel--poster">
     <span class="eyebrow">{{ t('onboarding.eyebrow') }}</span>
-    <h2 class="workbench-panel__title">{{ t('onboarding.title') }}</h2>
+    <h2 class="workbench-panel__title workbench-panel__title--poster">{{ t('onboarding.title') }}</h2>
+    <p class="workbench-panel__copy workbench-panel__copy--poster">{{ t('onboarding.description') }}</p>
 
     <label class="field-label">
       <span>{{ t('onboarding.label') }}</span>
@@ -89,13 +102,6 @@ const submitUsername = async () => {
         @keyup.enter="submitUsername"
       >
     </label>
-
-    <div class="workbench-panel__actions">
-      <button class="button" type="button" :disabled="saving" @click="submitUsername">
-        <i class="button-icon fa-solid fa-id-card" aria-hidden="true" />
-        <span>{{ saving ? t('onboarding.saving') : t('onboarding.submit') }}</span>
-      </button>
-    </div>
 
     <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
   </section>

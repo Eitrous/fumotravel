@@ -5,7 +5,6 @@ const props = defineProps<{
   postId: number
 }>()
 
-const auth = useAuthState()
 const { t } = useI18n()
 const { formatDateTime, formatLatLng, privacyModeLabel } = useFormatters()
 
@@ -34,26 +33,6 @@ watch(
   },
   { immediate: true }
 )
-
-const openSubmit = async () => {
-  await auth.init()
-
-  if (!auth.user.value) {
-    await navigateTo(createWorkbenchLocation('login', {
-      next: '/?panel=submit'
-    }))
-    return
-  }
-
-  if (!auth.hasUsername.value) {
-    await navigateTo(createWorkbenchLocation('onboarding', {
-      next: '/?panel=submit'
-    }))
-    return
-  }
-
-  await navigateTo(createWorkbenchLocation('submit'))
-}
 </script>
 
 <template>
@@ -65,17 +44,30 @@ const openSubmit = async () => {
     </template>
 
     <template v-else-if="post">
-      <span class="eyebrow">{{ t('post.eyebrow') }}</span>
-      <h2 class="workbench-panel__title">{{ post.title }}</h2>
-
-      <div class="detail-meta">
-        <span class="status-inline">@{{ post.author.username }}</span>
-        <span class="status-inline">{{ post.placeName || t('post.unnamedPlaceName') }}</span>
-        <span class="status-inline">{{ privacyModeLabel(post.privacyMode) }}</span>
-      </div>
-
       <div v-if="post.imageUrl" class="workbench-detail-media">
         <img :src="post.imageUrl" :alt="post.title">
+      </div>
+
+      <span class="eyebrow">{{ t('post.eyebrow') }}</span>
+      <h2 class="workbench-panel__title workbench-panel__title--poster">{{ post.title }}</h2>
+
+      <div class="workbench-detail-lines">
+        <p>
+          <i class="button-icon fa-solid fa-user" aria-hidden="true" />
+          <span>@{{ post.author.username }}</span>
+        </p>
+        <p>
+          <i class="button-icon fa-solid fa-location-dot" aria-hidden="true" />
+          <span>{{ post.placeName || t('post.unnamedPlaceName') }}</span>
+        </p>
+        <p>
+          <i class="button-icon fa-solid fa-crosshairs" aria-hidden="true" />
+          <span>{{ privacyModeLabel(post.privacyMode) }}</span>
+        </p>
+        <p>
+          <i class="button-icon fa-solid fa-clock" aria-hidden="true" />
+          <span>{{ formatDateTime(post.capturedAt) }}</span>
+        </p>
       </div>
 
       <div class="workbench-detail-grid">
@@ -99,26 +91,11 @@ const openSubmit = async () => {
         <strong>{{ t('post.preview') }}</strong>
         <LocationPreviewMap :public-location="post.publicLocation" :compact="true" />
       </div>
-
-      <div class="workbench-panel__actions">
-        <button class="ghost-button" type="button" @click="navigateTo(createWorkbenchLocation('info'))">
-          <i class="button-icon fa-solid fa-arrow-left" aria-hidden="true" />
-          <span>{{ t('common.backToMapOverview') }}</span>
-        </button>
-        <button class="button" type="button" @click="openSubmit">
-          <i class="button-icon fa-solid fa-paper-plane" aria-hidden="true" />
-          <span>{{ t('post.openSubmit') }}</span>
-        </button>
-      </div>
     </template>
 
     <div v-else class="empty-state empty-state--inline">
       <h2>{{ t('post.unavailableTitle') }}</h2>
       <p v-if="errorMessage">{{ errorMessage }}</p>
-      <button class="button" type="button" @click="navigateTo(createWorkbenchLocation('info'))">
-        <i class="button-icon fa-solid fa-arrow-left" aria-hidden="true" />
-        <span>{{ t('common.backToMapOverview') }}</span>
-      </button>
     </div>
   </section>
 </template>

@@ -278,6 +278,17 @@ watch(
   { immediate: true }
 )
 
+const canSubmit = computed(() => {
+  return Boolean(
+    selectedFile.value
+    && title.value.trim()
+    && exactLocation.value
+    && publicLocation.value
+    && auth.viewer.value
+    && !uploading.value
+  )
+})
+
 const submitPost = async () => {
   errorMessage.value = ''
   successMessage.value = ''
@@ -380,6 +391,14 @@ const submitPost = async () => {
   }
 }
 
+useWorkbenchToolbarAction(computed(() => ({
+  label: uploading.value ? t('submit.submitting') : t('submit.submitButton'),
+  icon: 'fa-paper-plane',
+  run: submitPost,
+  disabled: !canSubmit.value,
+  loading: uploading.value
+})))
+
 onBeforeUnmount(() => {
   revokePreviewUrls()
 })
@@ -388,12 +407,19 @@ onBeforeUnmount(() => {
 <template>
   <section class="workbench-panel workbench-panel--submit">
     <span class="eyebrow">{{ t('submit.eyebrow') }}</span>
-    <h2 class="workbench-panel__title">{{ t('submit.title') }}</h2>
+    <h2 class="workbench-panel__title workbench-panel__title--poster">{{ t('submit.title') }}</h2>
+    <p class="workbench-panel__copy workbench-panel__copy--poster">{{ t('submit.description') }}</p>
 
-    <div class="field-grid">
-      <section class="photo-drop">
+    <section class="workbench-stack-section">
+      <div class="workbench-stack-section__head">
         <strong>{{ t('submit.photoSectionTitle') }}</strong>
+        <div v-if="detectingExif || reverseLookupPending" class="chip-row">
+          <span v-if="detectingExif" class="status-inline">{{ t('submit.exifReading') }}</span>
+          <span v-if="reverseLookupPending" class="status-inline">{{ t('submit.reverseLookup') }}</span>
+        </div>
+      </div>
 
+      <div class="photo-drop">
         <input
           :key="fileInputKey"
           class="field-input"
@@ -402,11 +428,6 @@ onBeforeUnmount(() => {
           @change="onFileChange"
         >
 
-        <div v-if="detectingExif || reverseLookupPending" class="chip-row">
-          <span v-if="detectingExif" class="status-inline">{{ t('submit.exifReading') }}</span>
-          <span v-if="reverseLookupPending" class="status-inline">{{ t('submit.reverseLookup') }}</span>
-        </div>
-
         <div v-if="selectedFile" class="photo-preview">
           <img :src="imagePreviewUrl" :alt="selectedFile.name">
         </div>
@@ -414,9 +435,9 @@ onBeforeUnmount(() => {
         <div v-if="thumbPreviewUrl" class="photo-preview photo-preview--thumb">
           <img :src="thumbPreviewUrl" :alt="t('submit.thumbnailAlt')">
         </div>
-      </section>
+      </div>
 
-      <section class="field-grid">
+      <div class="field-grid">
         <label class="field-label">
           <span>{{ t('submit.titleLabel') }}</span>
           <input
@@ -452,15 +473,12 @@ onBeforeUnmount(() => {
             {{ t('submit.privacyExact') }}
           </label>
         </div>
+      </div>
+    </section>
 
-      </section>
-    </div>
-
-    <section class="field-grid">
-      <div class="picker-toolbar">
-        <div>
-          <strong>{{ t('submit.locationSectionTitle') }}</strong>
-        </div>
+    <section class="workbench-stack-section">
+      <div class="workbench-stack-section__head">
+        <strong>{{ t('submit.locationSectionTitle') }}</strong>
         <div class="picker-coords">
           <div class="picker-coords__group">
             <code>{{ t('submit.exactLocationLabel', { value: formatLatLng(exactLocation) }) }}</code>
@@ -478,30 +496,31 @@ onBeforeUnmount(() => {
       />
     </section>
 
-    <section class="field-grid field-grid--two">
+    <section class="workbench-stack-section field-grid field-grid--two">
       <div class="field-grid">
         <label class="field-label">
           <span>{{ t('submit.searchLabel') }}</span>
-          <div class="inline-actions workbench-inline-search">
-            <input
-              v-model="searchQuery"
-              class="field-input"
-              :placeholder="t('submit.searchPlaceholder')"
-              @keyup.enter="runPlaceSearch"
-            >
-            <button class="ghost-button" type="button" :disabled="searching" @click="runPlaceSearch">
-              <i class="button-icon fa-solid fa-magnifying-glass" aria-hidden="true" />
-              <span>{{ searching ? t('submit.searching') : t('submit.searchButton') }}</span>
-            </button>
-          </div>
+          <input
+            v-model="searchQuery"
+            class="field-input"
+            :placeholder="t('submit.searchPlaceholder')"
+            @keyup.enter="runPlaceSearch"
+          >
         </label>
 
         <ul v-if="searchResults.length" class="search-results">
           <li v-for="result in searchResults" :key="`${result.lat}-${result.lng}-${result.displayName}`">
-            <button type="button" @click="selectSearchResult(result)">
+            <div
+              class="search-results__item"
+              role="button"
+              tabindex="0"
+              @click="selectSearchResult(result)"
+              @keydown.enter.prevent="selectSearchResult(result)"
+              @keydown.space.prevent="selectSearchResult(result)"
+            >
               <strong>{{ result.placeName }}</strong>
               <span>{{ result.displayName }}</span>
-            </button>
+            </div>
           </li>
         </ul>
       </div>
@@ -529,17 +548,6 @@ onBeforeUnmount(() => {
         </label>
       </div>
     </section>
-
-    <div class="workbench-panel__actions">
-      <button class="button" type="button" :disabled="uploading" @click="submitPost">
-        <i class="button-icon fa-solid fa-paper-plane" aria-hidden="true" />
-        <span>{{ uploading ? t('submit.submitting') : t('submit.submitButton') }}</span>
-      </button>
-      <button class="ghost-button" type="button" @click="navigateTo(createWorkbenchLocation('info'))">
-        <i class="button-icon fa-solid fa-arrow-left" aria-hidden="true" />
-        <span>{{ t('submit.backToOverview') }}</span>
-      </button>
-    </div>
 
     <p v-if="successMessage" class="success-banner">{{ successMessage }}</p>
     <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
