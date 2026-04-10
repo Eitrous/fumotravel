@@ -2,11 +2,12 @@
 import type { AdminReviewPost } from '~~/shared/fumo'
 
 definePageMeta({
+  layout: 'admin',
   middleware: ['require-auth', 'require-admin']
 })
 
 const auth = useAuthState()
-const { formatDateTime, formatLatLng, privacyModeLabel } = useFormatters()
+const { formatDateTime, formatLatLng, privacyModeLabel } = useFormatters({ locale: 'zh-CN' })
 
 const posts = ref<AdminReviewPost[]>([])
 const selectedId = ref<number | null>(null)

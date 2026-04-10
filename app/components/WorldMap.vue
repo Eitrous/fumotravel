@@ -1,22 +1,37 @@
 <script setup lang="ts">
-import type { GeoJSONSource, Map as MapLibreMap, Marker, Popup } from 'maplibre-gl'
+import type { GeoJSONSource, Map as MapLibreMap, Marker } from 'maplibre-gl'
 import type { PublicMapCollection, PublicMapFeatureProperties } from '~~/shared/fumo'
 import {
   MAP_DEFAULT_CENTER,
   MAP_DEFAULT_STYLE_URL,
+  MAP_DARK_STYLE_URL,
   MAP_DEFAULT_ZOOM,
   MAP_THUMBNAIL_ZOOM
 } from '~~/shared/fumo'
+import { applyTaiwanProvinceLabelPolicy } from '~~/app/composables/useMapPoliticalLabels'
 
+const props = withDefaults(defineProps<{
+  selectedPostId?: number | null
+}>(), {
+  selectedPostId: null
+})
+
+const emit = defineEmits<{
+  'select-post': [postId: number]
+}>()
+
+const { t, locale } = useI18n()
+const { isDark } = useTheme()
 const config = useRuntimeConfig()
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<MapLibreMap | null>(null)
-const loading = ref(true)
-const errorMessage = ref('')
-const visibleCount = ref(0)
+const taiwanProvinceLabel = computed(() => t('map.taiwanProvinceLabel'))
+const collection = shallowRef<PublicMapCollection>({
+  type: 'FeatureCollection',
+  features: []
+})
 
 let maplibregl: typeof import('maplibre-gl') | null = null
-let activePopup: Popup | null = null
 const thumbnailMarkers = new Map<number, Marker>()
 
 const shouldUseThumbnails = () => {
@@ -26,7 +41,7 @@ const shouldUseThumbnails = () => {
 const normalizeProperties = (raw: Record<string, unknown>): PublicMapFeatureProperties => {
   return {
     id: Number(raw.id),
-    title: String(raw.title || '未命名投稿'),
+    title: String(raw.title || t('map.untitledPost')),
     placeName: raw.placeName ? String(raw.placeName) : null,
     username: String(raw.username || 'unknown'),
     thumbUrl: raw.thumbUrl ? String(raw.thumbUrl) : null,
@@ -35,60 +50,9 @@ const normalizeProperties = (raw: Record<string, unknown>): PublicMapFeatureProp
   }
 }
 
-const buildPopupContent = (props: PublicMapFeatureProperties) => {
-  const wrapper = document.createElement('article')
-  wrapper.className = 'map-popup'
-
-  if (props.thumbUrl) {
-    const image = document.createElement('img')
-    image.className = 'map-popup__thumb'
-    image.src = props.thumbUrl
-    image.alt = props.title
-    wrapper.append(image)
-  }
-
-  const title = document.createElement('h3')
-  title.className = 'map-popup__title'
-  title.textContent = props.title
-  wrapper.append(title)
-
-  const author = document.createElement('p')
-  author.className = 'map-popup__meta'
-  author.textContent = `作者 @${props.username}`
-  wrapper.append(author)
-
-  if (props.placeName) {
-    const place = document.createElement('p')
-    place.className = 'map-popup__meta'
-    place.textContent = props.placeName
-    wrapper.append(place)
-  }
-
-  const action = document.createElement('a')
-  action.className = 'text-button'
-  action.href = `/posts/${props.id}`
-  action.textContent = '查看详情'
-  wrapper.append(action)
-
-  return wrapper
-}
-
-const openPopup = (
-  coordinates: [number, number],
-  props: PublicMapFeatureProperties
-) => {
-  if (!mapRef.value || !maplibregl) {
-    return
-  }
-
-  activePopup?.remove()
-  activePopup = new maplibregl.Popup({
-    offset: 18,
-    closeButton: false
-  })
-    .setLngLat(coordinates)
-    .setDOMContent(buildPopupContent(props))
-    .addTo(mapRef.value)
+const emptyCollection: PublicMapCollection = {
+  type: 'FeatureCollection',
+  features: []
 }
 
 const fetchGeoJson = async () => {
@@ -113,6 +77,71 @@ const clearThumbnailMarkers = () => {
   thumbnailMarkers.clear()
 }
 
+const syncSelectionSource = () => {
+  if (!mapRef.value) {
+    return
+  }
+
+  const source = mapRef.value.getSource('selected-post') as GeoJSONSource | null
+  if (!source) {
+    return
+  }
+
+  const selectedFeature = collection.value.features.find((feature) => {
+    return feature.properties?.id === props.selectedPostId
+  })
+
+  source.setData(selectedFeature
+    ? {
+        type: 'FeatureCollection',
+        features: [selectedFeature]
+      }
+    : emptyCollection)
+
+  thumbnailMarkers.forEach((marker, id) => {
+    marker.getElement().classList.toggle('is-active', id === props.selectedPostId)
+  })
+}
+
+const createThumbnailMarker = (
+  map: MapLibreMap,
+  coordinates: [number, number],
+  featureProps: PublicMapFeatureProperties
+) => {
+  if (!maplibregl) {
+    return null
+  }
+
+  const el = document.createElement('button')
+  el.type = 'button'
+  el.className = 'map-thumb-marker'
+  el.classList.toggle('is-active', featureProps.id === props.selectedPostId)
+
+  if (featureProps.thumbUrl) {
+    const image = document.createElement('img')
+    image.src = featureProps.thumbUrl
+    image.alt = featureProps.title
+    el.append(image)
+  } else {
+    const fallback = document.createElement('span')
+    fallback.textContent = 'Fumo'
+    el.append(fallback)
+  }
+
+  el.addEventListener('click', () => {
+    emit('select-post', featureProps.id)
+  })
+
+  const marker = new maplibregl.Marker({
+    element: el,
+    anchor: 'bottom'
+  })
+
+  marker.setLngLat(coordinates).addTo(map)
+  thumbnailMarkers.set(featureProps.id, marker)
+  return marker
+}
+
 const syncThumbnailMarkers = () => {
   if (!mapRef.value || !maplibregl) {
     return
@@ -120,6 +149,7 @@ const syncThumbnailMarkers = () => {
 
   if (!shouldUseThumbnails()) {
     clearThumbnailMarkers()
+    syncSelectionSource()
     return
   }
 
@@ -134,40 +164,18 @@ const syncThumbnailMarkers = () => {
       continue
     }
 
-    const props = normalizeProperties(feature.properties)
+    const featureProps = normalizeProperties(feature.properties)
     const coordinates = feature.geometry.coordinates as [number, number]
-    nextIds.add(props.id)
+    nextIds.add(featureProps.id)
 
-    if (!thumbnailMarkers.has(props.id)) {
-      const el = document.createElement('button')
-      el.type = 'button'
-      el.className = 'map-thumb-marker'
-
-      if (props.thumbUrl) {
-        const image = document.createElement('img')
-        image.src = props.thumbUrl
-        image.alt = props.title
-        el.append(image)
-      } else {
-        const fallback = document.createElement('span')
-        fallback.textContent = 'Fumo'
-        el.append(fallback)
-      }
-
-      el.addEventListener('click', () => {
-        openPopup(coordinates, props)
-      })
-
-      const marker = new maplibregl.Marker({
-        element: el,
-        anchor: 'bottom'
-      })
-
-      marker.setLngLat(coordinates).addTo(mapRef.value)
-      thumbnailMarkers.set(props.id, marker)
-    } else {
-      thumbnailMarkers.get(props.id)?.setLngLat(coordinates)
+    const existingMarker = thumbnailMarkers.get(featureProps.id)
+    if (!existingMarker) {
+      createThumbnailMarker(mapRef.value, coordinates, featureProps)
+      continue
     }
+
+    existingMarker.setLngLat(coordinates)
+    existingMarker.getElement().classList.toggle('is-active', featureProps.id === props.selectedPostId)
   }
 
   thumbnailMarkers.forEach((marker, id) => {
@@ -183,25 +191,134 @@ const refreshSource = async () => {
     return
   }
 
-  loading.value = true
-
   try {
     const geojson = await fetchGeoJson()
-    if (!geojson) {
-      return
-    }
+    const nextCollection = geojson || emptyCollection
 
-    visibleCount.value = geojson.features.length
+    collection.value = nextCollection
+
     const source = mapRef.value.getSource('posts') as GeoJSONSource | null
-    source?.setData(geojson)
+    source?.setData(nextCollection)
     syncThumbnailMarkers()
-    errorMessage.value = ''
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '地图数据加载失败'
-  } finally {
-    loading.value = false
+    syncSelectionSource()
+  } catch {
+    // Keep map interactive even if a fetch attempt fails.
   }
 }
+
+const setupMapLayers = () => {
+  if (!mapRef.value) return
+
+  const sourceName = 'posts'
+
+  if (mapRef.value.getSource(sourceName)) {
+    return
+  }
+
+  mapRef.value.addSource(sourceName, {
+    type: 'geojson',
+    data: collection.value,
+    cluster: true,
+    clusterMaxZoom: 10,
+    clusterRadius: 48
+  })
+
+  mapRef.value.addSource('selected-post', {
+    type: 'geojson',
+    data: emptyCollection
+  })
+
+  // Theme-aware colors
+  const primaryColor = isDark.value ? '#ffffff' : '#000000'
+  const contrastColor = isDark.value ? '#000000' : '#ffffff'
+
+  mapRef.value.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: sourceName,
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-radius': ['step', ['get', 'point_count'], 18, 12, 22, 36, 28, 88, 34],
+      'circle-color': primaryColor,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': contrastColor
+    }
+  })
+
+  mapRef.value.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: sourceName,
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': ['get', 'point_count_abbreviated'],
+      'text-size': 12
+    },
+    paint: {
+      'text-color': contrastColor
+    }
+  })
+
+  mapRef.value.addLayer({
+    id: 'unclustered-point',
+    type: 'circle',
+    source: sourceName,
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-radius': 7,
+      'circle-color': primaryColor,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': contrastColor
+    }
+  })
+
+  mapRef.value.addLayer({
+    id: 'selected-post-ring',
+    type: 'circle',
+    source: 'selected-post',
+    paint: {
+      'circle-radius': 16,
+      'circle-color': isDark.value ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+      'circle-stroke-width': 3,
+      'circle-stroke-color': primaryColor
+    }
+  })
+
+  mapRef.value.addLayer({
+    id: 'selected-post-core',
+    type: 'circle',
+    source: 'selected-post',
+    paint: {
+      'circle-radius': 8,
+      'circle-color': primaryColor,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': contrastColor
+    }
+  })
+}
+
+const applyPoliticalLabels = () => {
+  if (!mapRef.value || !mapRef.value.isStyleLoaded()) {
+    return
+  }
+
+  applyTaiwanProvinceLabelPolicy(mapRef.value, taiwanProvinceLabel.value)
+}
+
+watch(isDark, (dark) => {
+  if (!mapRef.value) return
+  
+  const style = dark ? MAP_DARK_STYLE_URL : (config.public.mapStyleUrl || MAP_DEFAULT_STYLE_URL)
+  mapRef.value.setStyle(style)
+  
+  // setStyle removes all custom sources and layers, we must re-add them after the style is fully loaded
+  mapRef.value.once('style.load', () => {
+    applyPoliticalLabels()
+    setupMapLayers()
+    syncThumbnailMarkers()
+    syncSelectionSource()
+  })
+})
 
 onMounted(async () => {
   if (!mapEl.value) {
@@ -209,7 +326,7 @@ onMounted(async () => {
   }
 
   maplibregl = await import('maplibre-gl')
-  const style = config.public.mapStyleUrl || MAP_DEFAULT_STYLE_URL
+  const style = isDark.value ? MAP_DARK_STYLE_URL : (config.public.mapStyleUrl || MAP_DEFAULT_STYLE_URL)
 
   mapRef.value = new maplibregl.Map({
     container: mapEl.value,
@@ -218,84 +335,30 @@ onMounted(async () => {
     zoom: MAP_DEFAULT_ZOOM
   })
 
-  mapRef.value.addControl(new maplibregl.NavigationControl(), 'top-right')
-
   mapRef.value.on('load', async () => {
     const geojson = await fetchGeoJson()
+    const nextCollection = geojson || emptyCollection
+    collection.value = nextCollection
 
-    mapRef.value?.addSource('posts', {
-      type: 'geojson',
-      data: geojson || {
-        type: 'FeatureCollection',
-        features: []
-      },
-      cluster: true,
-      clusterMaxZoom: 10,
-      clusterRadius: 48
-    })
-
-    mapRef.value?.addLayer({
-      id: 'clusters',
-      type: 'circle',
-      source: 'posts',
-      filter: ['has', 'point_count'],
-      paint: {
-        'circle-radius': ['step', ['get', 'point_count'], 18, 12, 22, 36, 28, 88, 34],
-        'circle-color': '#ff6b57',
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#fff7f1'
-      }
-    })
-
-    mapRef.value?.addLayer({
-      id: 'cluster-count',
-      type: 'symbol',
-      source: 'posts',
-      filter: ['has', 'point_count'],
-      layout: {
-        'text-field': ['get', 'point_count_abbreviated'],
-        'text-size': 12
-      },
-      paint: {
-        'text-color': '#fff7f1'
-      }
-    })
-
-    mapRef.value?.addLayer({
-      id: 'unclustered-point',
-      type: 'circle',
-      source: 'posts',
-      filter: ['!', ['has', 'point_count']],
-      paint: {
-        'circle-radius': 7,
-        'circle-color': '#0f7c82',
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#fff7f1'
-      }
-    })
+    applyPoliticalLabels()
+    setupMapLayers()
 
     mapRef.value?.on('mouseenter', 'clusters', () => {
-      if (mapRef.value) {
-        mapRef.value.getCanvas().style.cursor = 'pointer'
-      }
+      mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
     })
 
     mapRef.value?.on('mouseleave', 'clusters', () => {
-      if (mapRef.value) {
-        mapRef.value.getCanvas().style.cursor = ''
-      }
+      mapRef.value?.getCanvas().style.setProperty('cursor', '')
     })
 
     mapRef.value?.on('mouseenter', 'unclustered-point', () => {
-      if (mapRef.value && !shouldUseThumbnails()) {
-        mapRef.value.getCanvas().style.cursor = 'pointer'
+      if (!shouldUseThumbnails()) {
+        mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
       }
     })
 
     mapRef.value?.on('mouseleave', 'unclustered-point', () => {
-      if (mapRef.value) {
-        mapRef.value.getCanvas().style.cursor = ''
-      }
+      mapRef.value?.getCanvas().style.setProperty('cursor', '')
     })
 
     mapRef.value?.on('click', 'clusters', async (event) => {
@@ -305,7 +368,12 @@ onMounted(async () => {
       const cluster = features?.[0]
       const clusterId = cluster?.properties?.cluster_id
 
-      if (clusterId == null || !mapRef.value) {
+      if (
+        clusterId == null
+        || !mapRef.value
+        || !cluster
+        || cluster.geometry.type !== 'Point'
+      ) {
         return
       }
 
@@ -321,12 +389,12 @@ onMounted(async () => {
 
     mapRef.value?.on('click', 'unclustered-point', (event) => {
       const feature = event.features?.[0]
-      if (!feature || feature.geometry.type !== 'Point' || !feature.properties) {
+      if (!feature?.properties) {
         return
       }
 
-      const props = normalizeProperties(feature.properties)
-      openPopup(feature.geometry.coordinates as [number, number], props)
+      const normalizedProps = normalizeProperties(feature.properties)
+      emit('select-post', normalizedProps.id)
     })
 
     mapRef.value?.on('moveend', () => {
@@ -334,12 +402,27 @@ onMounted(async () => {
     })
 
     syncThumbnailMarkers()
-    loading.value = false
+    syncSelectionSource()
   })
 })
 
+watch(
+  () => props.selectedPostId,
+  () => {
+    syncSelectionSource()
+  }
+)
+
+watch(
+  () => locale.value,
+  () => {
+    applyPoliticalLabels()
+    syncThumbnailMarkers()
+    syncSelectionSource()
+  }
+)
+
 onBeforeUnmount(() => {
-  activePopup?.remove()
   clearThumbnailMarkers()
   mapRef.value?.remove()
 })
@@ -348,14 +431,5 @@ onBeforeUnmount(() => {
 <template>
   <div class="map-stage">
     <div ref="mapEl" class="map-canvas" />
-
-    <div class="map-overlay-status">
-      <div class="map-status-card">
-        <strong>{{ loading ? '地图正在展开…' : `当前视野内 ${visibleCount} 张照片` }}</strong>
-        <p>
-          {{ errorMessage || '拖拽或缩放地图可以按视野范围重新加载投稿。' }}
-        </p>
-      </div>
-    </div>
   </div>
 </template>

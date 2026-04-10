@@ -2,6 +2,7 @@
 import type { Marker } from 'maplibre-gl'
 import type { LatLng, PrivacyMode } from '~~/shared/fumo'
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_STYLE_URL, MAP_DEFAULT_ZOOM } from '~~/shared/fumo'
+import { applyTaiwanProvinceLabelPolicy } from '~~/app/composables/useMapPoliticalLabels'
 
 const props = withDefaults(defineProps<{
   exactLocation?: LatLng | null
@@ -17,9 +18,11 @@ const props = withDefaults(defineProps<{
   compact: false
 })
 
+const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<import('maplibre-gl').Map | null>(null)
+const taiwanProvinceLabel = computed(() => t('map.taiwanProvinceLabel'))
 
 let maplibregl: typeof import('maplibre-gl') | null = null
 let publicMarker: Marker | null = null
@@ -40,10 +43,11 @@ const syncMarkers = () => {
   if (props.publicLocation) {
     if (!publicMarker) {
       publicMarker = new maplibregl.Marker({
-        element: markerElement('map-pin map-pin--public', '公开位置')
+        element: markerElement('map-pin map-pin--public', t('common.publicLocation'))
       })
     }
 
+    publicMarker.getElement().title = t('common.publicLocation')
     publicMarker
       .setLngLat([props.publicLocation.lng, props.publicLocation.lat])
       .addTo(mapRef.value)
@@ -55,10 +59,11 @@ const syncMarkers = () => {
   if (props.showExact && props.exactLocation) {
     if (!exactMarker) {
       exactMarker = new maplibregl.Marker({
-        element: markerElement('map-pin map-pin--exact', '精确位置')
+        element: markerElement('map-pin map-pin--exact', t('common.exactLocation'))
       })
     }
 
+    exactMarker.getElement().title = t('common.exactLocation')
     exactMarker
       .setLngLat([props.exactLocation.lng, props.exactLocation.lat])
       .addTo(mapRef.value)
@@ -107,6 +112,14 @@ const fitBoundsToMarkers = () => {
   })
 }
 
+const applyPoliticalLabels = () => {
+  if (!mapRef.value || !mapRef.value.isStyleLoaded()) {
+    return
+  }
+
+  applyTaiwanProvinceLabelPolicy(mapRef.value, taiwanProvinceLabel.value)
+}
+
 onMounted(async () => {
   if (!mapEl.value) {
     return
@@ -124,14 +137,16 @@ onMounted(async () => {
 
   mapRef.value.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
   mapRef.value.on('load', () => {
+    applyPoliticalLabels()
     syncMarkers()
     fitBoundsToMarkers()
   })
 })
 
 watch(
-  () => [props.exactLocation, props.publicLocation, props.showExact],
+  () => [props.exactLocation, props.publicLocation, props.showExact, locale.value],
   () => {
+    applyPoliticalLabels()
     syncMarkers()
     fitBoundsToMarkers()
   },

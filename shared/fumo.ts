@@ -1,6 +1,7 @@
 export type PrivacyMode = 'exact' | 'approx'
 export type PostStatus = 'pending' | 'approved' | 'rejected'
 export type UserRole = 'user' | 'admin'
+export type WorkbenchPanel = 'info' | 'post' | 'login' | 'onboarding' | 'submit'
 
 export type LatLng = {
   lat: number
@@ -108,6 +109,8 @@ export type SubmitPostPayload = {
 export const STORAGE_BUCKET = 'fumo'
 export const MAP_DEFAULT_STYLE_URL =
   'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+export const MAP_DARK_STYLE_URL = 
+  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 export const MAP_DEFAULT_CENTER: [number, number] = [116.397389, 39.908722]
 export const MAP_DEFAULT_ZOOM = 1.55
 export const MAP_THUMBNAIL_ZOOM = 5.8

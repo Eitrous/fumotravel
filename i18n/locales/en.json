@@ -1,0 +1,171 @@
+{
+  "common": {
+    "brand": "Fumo Spots",
+    "brandTagline": "Pin Touhou Project fans' travel photos back onto the world map",
+    "authorIdUnset": "Author ID not set",
+    "login": "Log in",
+    "submit": "Submit",
+    "signOut": "Sign out",
+    "review": "Review desk",
+    "language": "Language",
+    "close": "Close",
+    "closePanel": "Close panel",
+    "toggleThemeToLight": "Switch to light theme",
+    "toggleThemeToDark": "Switch to dark theme",
+    "backToMapOverview": "Back to map overview",
+    "loadingAuth": "Syncing session…",
+    "sending": "Sending…",
+    "saving": "Saving…",
+    "notProvided": "Not provided",
+    "notAnnotated": "Not set",
+    "privacyExact": "Exact public location",
+    "privacyApprox": "Approximate public location",
+    "publicLocation": "Public location",
+    "exactLocation": "Exact location",
+    "languageNames": {
+      "zh-CN": "简体中文",
+      "en": "English",
+      "ja": "日本語"
+    }
+  },
+  "seo": {
+    "title": "Fumo Spots",
+    "description": "A world map for Touhou Project fans to share the fumo photos they took around the globe."
+  },
+  "workbench": {
+    "eyebrow": "World Map Workspace",
+    "title": "Pin every fumo travel photo onto the world map.",
+    "description": "The map stays on the left, and every interaction happens on the right. Click a marker for details, then log in to add your own photo and wait for approval.",
+    "actions": {
+      "login": "Log in and start sharing",
+      "submit": "Submit a new photo",
+      "overview": "Return to the overview"
+    },
+    "facts": {
+      "browse": {
+        "title": "How to browse",
+        "body": "Zoomed out, the map shows global distribution. Zoom in and the markers switch to thumbnails so each post is easier to find."
+      },
+      "publicLocation": {
+        "title": "Public location",
+        "body": "Authors can share the exact coordinates or only an approximate point. The precise shooting location still stays in the review backend."
+      },
+      "submission": {
+        "title": "What each post includes",
+        "body": "Every photo can carry an author ID, place, capture time, and note, slowly building a shared fumo travel atlas."
+      }
+    }
+  },
+  "map": {
+    "loading": "Opening the map…",
+    "visibleCount": "{count} published photo(s) are visible in this view",
+    "helper": "Pan or zoom to reload the current viewport, then click a marker to open details on the right.",
+    "dataLoadFailed": "Failed to load map data.",
+    "untitledPost": "Untitled post",
+    "taiwanProvinceLabel": "TAIWAN PROVINCE"
+  },
+  "legend": {
+    "title": "Map guide",
+    "description": "At low zoom levels you see distribution and clustering first. Zoom in and the markers switch into photo thumbnails.",
+    "approvedPin": "Standard pin for approved posts",
+    "thumbnailMarker": "Photo thumbnail marker at closer zoom",
+    "approximateMarker": "Approximate public locations never expose the exact shooting point"
+  },
+  "auth": {
+    "eyebrow": "Magic Link Login",
+    "title": "Log in first, then send your fumo on its trip.",
+    "description": "After your first login, you will set a public author ID. Future submissions, review states, and post details will all use that identity.",
+    "emailLabel": "Email address",
+    "sendLink": "Send login link",
+    "sending": "Sending…",
+    "browseFirst": "Browse the map first",
+    "hint": "After login, you will return to the thing you were trying to open. If there is no explicit target, the submit panel opens by default.",
+    "success": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
+    "errors": {
+      "requiredEmail": "Please enter an email address.",
+      "sendFailed": "Failed to send the login link."
+    }
+  },
+  "onboarding": {
+    "eyebrow": "Author ID",
+    "title": "Pick an author ID that will appear on the map.",
+    "description": "This ID is shown on every public post detail. We recommend 3 to 24 letters, numbers, underscores, or hyphens.",
+    "label": "Author ID",
+    "hint": "Examples: `reimu_tabi`, `alice_fumo`, `world_trip_01`.",
+    "submit": "Save author ID",
+    "saving": "Saving…",
+    "errors": {
+      "required": "Please enter an author ID.",
+      "saveFailed": "Failed to save the author ID."
+    }
+  },
+  "post": {
+    "eyebrow": "Post Detail",
+    "loadingTitle": "Loading this post…",
+    "loadingDescription": "The right panel will show the full image, public location, and the author's note.",
+    "authorNote": "Author note",
+    "authorNoteFallback": "The author did not leave an extra note.",
+    "locationInfo": "Location",
+    "locationDetailFallback": "No more detailed region information was provided.",
+    "publicCoordinates": "Public coordinates: {value}",
+    "capturedAt": "Captured at: {value}",
+    "preview": "Public location preview",
+    "unnamedPlaceName": "Unnamed place",
+    "unnamedPlace": "Unnamed location",
+    "openSubmit": "I want to submit too",
+    "unavailableTitle": "This post is not available right now",
+    "unavailableDescription": "It may still be under review, or the link may no longer be valid.",
+    "errors": {
+      "loadFailed": "Failed to load post details."
+    }
+  },
+  "submit": {
+    "eyebrow": "Submit A Photo",
+    "title": "Upload a fumo travel photo.",
+    "description": "Choose the photo, set the point, then decide how precise the public location should be. The public site only uses the public point, never the exact review coordinates.",
+    "photoSectionTitle": "1. Choose the photo",
+    "photoSectionDescription": "If the image contains EXIF coordinates or capture time, the app will try to read them automatically. Without EXIF, you can still place the point manually on the map.",
+    "exifReading": "Reading EXIF…",
+    "exifReady": "EXIF coordinates / capture time supported",
+    "reverseLookup": "Resolving place name…",
+    "thumbnailAlt": "Generated thumbnail preview",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Example: Marisa in Prague Old Town Square",
+    "bodyLabel": "Author note",
+    "bodyPlaceholder": "Write a short note about where the photo was taken or what happened during this fumo trip.",
+    "capturedAtLabel": "Capture time",
+    "privacyApprox": "Public approximate location",
+    "privacyExact": "Public exact coordinates",
+    "locationSectionTitle": "2. Mark the location",
+    "locationSectionDescription": "Click on the map to set the exact point. If you choose approximate sharing, drag the blue marker to adjust the public point.",
+    "exactLocationLabel": "Exact location {value}",
+    "publicLocationLabel": "Public location {value}",
+    "searchLabel": "Search for a place",
+    "searchPlaceholder": "Example: Hakone Shrine, Japan",
+    "searching": "Searching…",
+    "searchButton": "Search place",
+    "publicPlaceLabel": "Public place name",
+    "publicPlacePlaceholder": "Example: Tokyo, Japan",
+    "countryLabel": "Country",
+    "countryPlaceholder": "Japan",
+    "regionLabel": "Region / State",
+    "regionPlaceholder": "Tokyo",
+    "cityLabel": "City / Landmark",
+    "cityPlaceholder": "Akihabara",
+    "submitButton": "Submit for review",
+    "submitting": "Submitting…",
+    "backToOverview": "Back to map overview",
+    "success": "Your submission is in. It will appear on the public map after an admin approves it.",
+    "errors": {
+      "cannotCreateThumbnailCanvas": "Could not create the thumbnail canvas.",
+      "thumbnailFailed": "Failed to generate the thumbnail.",
+      "searchFailed": "Place search failed.",
+      "selectPhoto": "Please choose a photo to submit.",
+      "titleRequired": "Please enter a title.",
+      "exactRequired": "Please mark the exact shooting location on the map first.",
+      "publicRequired": "Please confirm the public location first.",
+      "sessionExpired": "Your session expired. Please log in again.",
+      "submitFailed": "Submission failed."
+    }
+  }
+}

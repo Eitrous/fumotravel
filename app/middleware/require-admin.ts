@@ -1,4 +1,4 @@
-export default defineNuxtRouteMiddleware(async () => {
+export default defineNuxtRouteMiddleware(async (to) => {
   if (import.meta.server) {
     return
   }
@@ -7,7 +7,13 @@ export default defineNuxtRouteMiddleware(async () => {
   await auth.init()
 
   if (!auth.user.value) {
-    return navigateTo('/login')
+    return navigateTo({
+      path: '/',
+      query: {
+        panel: 'login',
+        next: to.fullPath
+      }
+    })
   }
 
   if (!auth.isAdmin.value) {

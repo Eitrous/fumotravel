@@ -4,10 +4,43 @@ import { MAP_DEFAULT_STYLE_URL } from './shared/fumo'
 export default defineNuxtConfig({
   compatibilityDate: '2026-04-10',
   devtools: { enabled: true },
+  modules: ['@nuxtjs/i18n'],
   css: [
     '~/assets/css/main.css',
+    '@fortawesome/fontawesome-free/css/all.min.css',
     'maplibre-gl/dist/maplibre-gl.css'
   ],
+  i18n: {
+    strategy: 'no_prefix',
+    defaultLocale: 'zh-CN',
+    langDir: 'locales',
+    locales: [
+      {
+        code: 'zh-CN',
+        language: 'zh-CN',
+        name: '简体中文',
+        file: 'zh-CN.json'
+      },
+      {
+        code: 'en',
+        language: 'en-US',
+        name: 'English',
+        file: 'en.json'
+      },
+      {
+        code: 'ja',
+        language: 'ja-JP',
+        name: '日本語',
+        file: 'ja.json'
+      }
+    ],
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'fumo_spots_locale',
+      alwaysRedirect: false,
+      fallbackLocale: 'zh-CN'
+    }
+  },
   runtimeConfig: {
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     geocodeBaseUrl: process.env.GEOCODE_BASE_URL || 'https://nominatim.openstreetmap.org',

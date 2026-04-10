@@ -2,6 +2,7 @@
 import type { Marker } from 'maplibre-gl'
 import type { LatLng, PrivacyMode } from '~~/shared/fumo'
 import { MAP_DEFAULT_CENTER, MAP_DEFAULT_STYLE_URL, MAP_DEFAULT_ZOOM } from '~~/shared/fumo'
+import { applyTaiwanProvinceLabelPolicy } from '~~/app/composables/useMapPoliticalLabels'
 
 const props = withDefaults(defineProps<{
   exactLocation?: LatLng | null
@@ -17,9 +18,11 @@ const emit = defineEmits<{
   'update:publicLocation': [LatLng | null]
 }>()
 
+const { t, locale } = useI18n()
 const config = useRuntimeConfig()
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<import('maplibre-gl').Map | null>(null)
+const taiwanProvinceLabel = computed(() => t('map.taiwanProvinceLabel'))
 
 let maplibregl: typeof import('maplibre-gl') | null = null
 let exactMarker: Marker | null = null
@@ -50,7 +53,7 @@ const syncMarkers = () => {
     if (!exactMarker) {
       exactMarker = new maplibregl.Marker({
         draggable: true,
-        element: markerElement('map-pin map-pin--exact', '精确位置')
+        element: markerElement('map-pin map-pin--exact', t('common.exactLocation'))
       })
 
       exactMarker.on('dragend', () => {
@@ -66,6 +69,7 @@ const syncMarkers = () => {
       })
     }
 
+    exactMarker.getElement().title = t('common.exactLocation')
     exactMarker
       .setLngLat([props.exactLocation.lng, props.exactLocation.lat])
       .addTo(mapRef.value)
@@ -79,7 +83,7 @@ const syncMarkers = () => {
     if (!publicMarker) {
       publicMarker = new maplibregl.Marker({
         draggable: true,
-        element: markerElement('map-pin map-pin--public', '公开位置')
+        element: markerElement('map-pin map-pin--public', t('common.publicLocation'))
       })
 
       publicMarker.on('dragend', () => {
@@ -95,6 +99,7 @@ const syncMarkers = () => {
       })
     }
 
+    publicMarker.getElement().title = t('common.publicLocation')
     publicMarker
       .setLngLat([props.publicLocation.lng, props.publicLocation.lat])
       .addTo(mapRef.value)
@@ -139,6 +144,14 @@ const syncViewport = (animated = false) => {
   mapRef.value.jumpTo(target)
 }
 
+const applyPoliticalLabels = () => {
+  if (!mapRef.value || !mapRef.value.isStyleLoaded()) {
+    return
+  }
+
+  applyTaiwanProvinceLabelPolicy(mapRef.value, taiwanProvinceLabel.value)
+}
+
 onMounted(async () => {
   if (!mapEl.value) {
     return
@@ -157,6 +170,7 @@ onMounted(async () => {
   mapRef.value.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
 
   mapRef.value.on('load', () => {
+    applyPoliticalLabels()
     syncMarkers()
     syncViewport()
   })
@@ -170,12 +184,13 @@ onMounted(async () => {
 })
 
 watch(
-  () => [props.exactLocation, props.publicLocation, props.privacyMode],
-  ([, , privacyMode]) => {
-    if (privacyMode === 'exact' && props.exactLocation) {
+  () => [props.exactLocation, props.publicLocation, props.privacyMode, locale.value],
+  ([, , mode]) => {
+    if (mode === 'exact' && props.exactLocation) {
       emit('update:publicLocation', props.exactLocation)
     }
 
+    applyPoliticalLabels()
     syncMarkers()
     syncViewport(true)
   },

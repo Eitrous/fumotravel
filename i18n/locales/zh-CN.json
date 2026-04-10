@@ -1,0 +1,171 @@
+{
+  "common": {
+    "brand": "Fumo Spots",
+    "brandTagline": "Fumo Spots",
+    "authorIdUnset": "未设置作者 ID",
+    "login": "登录",
+    "submit": "投稿",
+    "signOut": "退出",
+    "review": "审核台",
+    "language": "语言",
+    "close": "关闭",
+    "closePanel": "关闭面板",
+    "toggleThemeToLight": "切换到浅色主题",
+    "toggleThemeToDark": "切换到深色主题",
+    "backToMapOverview": "返回地图概览",
+    "loadingAuth": "正在同步登录状态…",
+    "sending": "发送中…",
+    "saving": "保存中…",
+    "notProvided": "未提供",
+    "notAnnotated": "未标注",
+    "privacyExact": "公开精确坐标",
+    "privacyApprox": "公开近似位置",
+    "publicLocation": "公开位置",
+    "exactLocation": "精确位置",
+    "languageNames": {
+      "zh-CN": "简体中文",
+      "en": "English",
+      "ja": "日本語"
+    }
+  },
+  "seo": {
+    "title": "Fumo Spots",
+    "description": "给东方 Project 爱好者分享他们在世界各地拍摄的 fumo 照片，用一张大地图把每段旅途连接起来。"
+  },
+  "workbench": {
+    "eyebrow": "地图工作台",
+    "title": "把每一张 fumo 旅照钉到世界地图上。",
+    "description": "左侧是公开地图，右侧是操作区。点击图钉查看详情，登录后可以提交自己的照片，管理员审核通过后就会出现在地图上。",
+    "actions": {
+      "login": "登录并开始投稿",
+      "submit": "提交一张新照片",
+      "overview": "回到地图概览"
+    },
+    "facts": {
+      "browse": {
+        "title": "浏览方式",
+        "body": "缩小时看全球分布，放大后会切成缩略图，方便直接找到每一条投稿。"
+      },
+      "publicLocation": {
+        "title": "公开位置",
+        "body": "作者可以选择公开精确坐标，也可以只公开近似点位，后台仍会保留精确拍摄位置用于审核。"
+      },
+      "submission": {
+        "title": "投稿内容",
+        "body": "每张照片都可以附带作者 ID、地点、拍摄时间和留言，形成一张不断扩展的 fumo 世界旅行图。"
+      }
+    }
+  },
+  "map": {
+    "loading": "地图正在展开…",
+    "visibleCount": "当前视野内有 {count} 张已发布照片",
+    "helper": "拖拽或缩放地图会按当前视野重新加载内容，点击图钉可在右侧查看详情。",
+    "dataLoadFailed": "地图数据加载失败。",
+    "untitledPost": "未命名投稿",
+    "taiwanProvinceLabel": "TAIWAN PROVINCE"
+  },
+  "legend": {
+    "title": "地图说明",
+    "description": "缩小时优先看分布与聚类，放大后会切换成缩略图标记，方便直接找到每张 fumo 旅照。",
+    "approvedPin": "已通过审核的标准图钉",
+    "thumbnailMarker": "放大后的照片缩略图标记",
+    "approximateMarker": "选择近似公开时，地图不会暴露精确拍摄点"
+  },
+  "auth": {
+    "eyebrow": "邮箱魔法链接登录",
+    "title": "先登录，再让你的 fumo 正式出发。",
+    "description": "首次登录后我们会引导你设置一个公开作者 ID，之后投稿、审核状态和详情页都会围绕这个 ID 展示。",
+    "emailLabel": "邮箱地址",
+    "sendLink": "发送登录链接",
+    "sending": "发送中…",
+    "browseFirst": "先看看地图",
+    "hint": "登录完成后会自动回到你刚才想打开的内容；如果没有额外目标，默认会进入投稿面板。",
+    "success": "登录链接已经发到你的邮箱，打开邮件里的链接后会回到当前站点继续操作。",
+    "errors": {
+      "requiredEmail": "请输入邮箱地址。",
+      "sendFailed": "发送登录链接失败。"
+    }
+  },
+  "onboarding": {
+    "eyebrow": "作者 ID",
+    "title": "给自己设置一个会出现在地图上的作者 ID。",
+    "description": "这个 ID 会显示在每张公开照片的详情里。建议使用 3 到 24 位的字母、数字、下划线或短横线。",
+    "label": "作者 ID",
+    "hint": "例如 `reimu_tabi`、`alice_fumo`、`world_trip_01`。",
+    "submit": "完成设置",
+    "saving": "保存中…",
+    "errors": {
+      "required": "请输入作者 ID。",
+      "saveFailed": "保存作者 ID 失败。"
+    }
+  },
+  "post": {
+    "eyebrow": "投稿详情",
+    "loadingTitle": "正在加载这条投稿…",
+    "loadingDescription": "右侧会显示高清图片、公开位置和作者留言。",
+    "authorNote": "作者留言",
+    "authorNoteFallback": "作者没有留下额外说明。",
+    "locationInfo": "地点信息",
+    "locationDetailFallback": "未补充更细的行政区信息",
+    "publicCoordinates": "公开坐标：{value}",
+    "capturedAt": "拍摄时间：{value}",
+    "preview": "公开位置预览",
+    "unnamedPlaceName": "未填写地点名称",
+    "unnamedPlace": "未命名地点",
+    "openSubmit": "我也要投稿",
+    "unavailableTitle": "这条投稿暂时不可见",
+    "unavailableDescription": "它可能仍在审核中，或者链接已经失效。",
+    "errors": {
+      "loadFailed": "帖子详情加载失败。"
+    }
+  },
+  "submit": {
+    "eyebrow": "投稿照片",
+    "title": "上传一张 fumo 的旅行照片。",
+    "description": "先选图，再定点，最后决定公开精度。地图和详情页只使用公开位置，不会暴露后台保存的精确坐标。",
+    "photoSectionTitle": "1. 选择照片",
+    "photoSectionDescription": "如果图片里带有 EXIF 坐标和拍摄时间，系统会尝试自动读取；没有 EXIF 也可以在地图上手动选点。",
+    "exifReading": "正在读取 EXIF…",
+    "exifReady": "已支持 EXIF 坐标 / 拍摄时间",
+    "reverseLookup": "正在解析地点名称…",
+    "thumbnailAlt": "自动生成的缩略图",
+    "titleLabel": "标题",
+    "titlePlaceholder": "例如：魔理沙在布拉格旧城广场",
+    "bodyLabel": "作者留言",
+    "bodyPlaceholder": "可以写写这张照片是在什么场景下拍的，或者这只 fumo 当天经历了什么。",
+    "capturedAtLabel": "拍摄时间",
+    "privacyApprox": "公开近似位置",
+    "privacyExact": "公开精确坐标",
+    "locationSectionTitle": "2. 标记地点",
+    "locationSectionDescription": "点击地图设置精确位置；如果选择近似公开，再拖动蓝色标记来调整公开点位。",
+    "exactLocationLabel": "精确位置 {value}",
+    "publicLocationLabel": "公开位置 {value}",
+    "searchLabel": "地点搜索",
+    "searchPlaceholder": "例如：Hakone Shrine, Japan",
+    "searching": "搜索中…",
+    "searchButton": "搜索地点",
+    "publicPlaceLabel": "公开地点名称",
+    "publicPlacePlaceholder": "例如：Tokyo, Japan",
+    "countryLabel": "国家",
+    "countryPlaceholder": "Japan",
+    "regionLabel": "地区 / 州省",
+    "regionPlaceholder": "Tokyo",
+    "cityLabel": "城市 / 景点",
+    "cityPlaceholder": "Akihabara",
+    "submitButton": "提交审核",
+    "submitting": "提交中…",
+    "backToOverview": "返回地图概览",
+    "success": "投稿已提交，等管理员审核通过后就会出现在公开地图上。",
+    "errors": {
+      "cannotCreateThumbnailCanvas": "无法创建缩略图画布。",
+      "thumbnailFailed": "缩略图生成失败。",
+      "searchFailed": "地点搜索失败。",
+      "selectPhoto": "请先选择要投稿的照片。",
+      "titleRequired": "请输入标题。",
+      "exactRequired": "请先在地图上标注精确拍摄位置。",
+      "publicRequired": "请先确认公开展示的位置。",
+      "sessionExpired": "登录状态已失效，请重新登录。",
+      "submitFailed": "投稿失败。"
+    }
+  }
+}

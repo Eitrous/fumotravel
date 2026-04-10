@@ -8,8 +8,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (auth.user.value && !auth.hasUsername.value) {
     return navigateTo({
-      path: '/onboarding',
-      query: { next: to.fullPath }
+      path: '/',
+      query: {
+        panel: 'onboarding',
+        next: to.fullPath
+      }
     })
   }
 })

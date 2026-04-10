@@ -74,7 +74,8 @@ export const useAuthState = () => {
 
   const sendMagicLink = async (email: string, nextPath?: string) => {
     const supabase = useSupabaseBrowserClient()
-    const redirectTarget = new URL('/login', window.location.origin)
+    const redirectTarget = new URL('/', window.location.origin)
+    redirectTarget.searchParams.set('panel', 'login')
 
     if (nextPath) {
       redirectTarget.searchParams.set('next', nextPath)
