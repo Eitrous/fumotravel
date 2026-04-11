@@ -1,4 +1,4 @@
-import type { PublicPostDetail } from '~~/shared/fumo'
+import type { PostLikeResponse, PublicPostDetail } from '~~/shared/fumo'
 
 export const POST_DETAIL_CACHE_TTL_MS = 10 * 60 * 1000
 export const MAX_POST_DETAIL_CACHE_ITEMS = 50
@@ -9,9 +9,17 @@ type CachedPostDetail = {
   expiresAt: number
 }
 
-const pendingPostDetailRequests = new Map<number, Promise<PublicPostDetail>>()
+type PostDetailRequestOptions = {
+  headers?: Record<string, string>
+  viewerId?: string | null
+}
 
-const cacheKeyForPost = (postId: number) => String(postId)
+const pendingPostDetailRequests = new Map<string, Promise<PublicPostDetail>>()
+
+const cacheKeyPrefixForPost = (postId: number) => `${postId}::`
+const cacheKeyForPost = (postId: number, viewerId: string | null = null) => {
+  return `${cacheKeyPrefixForPost(postId)}${viewerId || 'public'}`
+}
 
 export const usePostDetailCache = () => {
   const cache = useState<Record<string, CachedPostDetail>>('post-detail-cache', () => ({}))
@@ -60,11 +68,11 @@ export const usePostDetailCache = () => {
     cache.value = next
   }
 
-  const setPostDetail = (postId: number, post: PublicPostDetail) => {
+  const setPostDetail = (key: string, post: PublicPostDetail) => {
     const now = Date.now()
     cache.value = {
       ...cache.value,
-      [cacheKeyForPost(postId)]: {
+      [key]: {
         post,
         lastAccessedAt: now,
         expiresAt: now + POST_DETAIL_CACHE_TTL_MS
@@ -73,9 +81,8 @@ export const usePostDetailCache = () => {
     trimPostDetailCache()
   }
 
-  const getCachedPostDetail = (postId: number) => {
+  const getCachedPostDetail = (key: string) => {
     const now = Date.now()
-    const key = cacheKeyForPost(postId)
     const cached = cache.value[key]
 
     if (!cached) {
@@ -98,46 +105,98 @@ export const usePostDetailCache = () => {
     return cached.post
   }
 
-  const getPostDetail = async (postId: number) => {
+  const getPostDetail = async (postId: number, options: PostDetailRequestOptions = {}) => {
     pruneExpiredPostDetails()
 
-    const cached = getCachedPostDetail(postId)
+    const key = cacheKeyForPost(postId, options.viewerId ?? null)
+    const cached = getCachedPostDetail(key)
     if (cached) {
       return cached
     }
 
-    const pendingRequest = pendingPostDetailRequests.get(postId)
+    const pendingRequest = pendingPostDetailRequests.get(key)
     if (pendingRequest) {
       return pendingRequest
     }
 
-    const request = $fetch<PublicPostDetail>(`/api/posts/${postId}`)
+    const request = $fetch<PublicPostDetail>(`/api/posts/${postId}`, {
+      headers: options.headers
+    })
       .then((post) => {
-        setPostDetail(postId, post)
+        setPostDetail(key, post)
         return post
       })
       .finally(() => {
-        pendingPostDetailRequests.delete(postId)
+        pendingPostDetailRequests.delete(key)
       })
 
-    pendingPostDetailRequests.set(postId, request)
+    pendingPostDetailRequests.set(key, request)
     return request
   }
 
-  const prefetchPostDetail = (postId: number) => {
-    void getPostDetail(postId).catch(() => {
-      pendingPostDetailRequests.delete(postId)
+  const prefetchPostDetail = (postId: number, options: PostDetailRequestOptions = {}) => {
+    const key = cacheKeyForPost(postId, options.viewerId ?? null)
+    void getPostDetail(postId, options).catch(() => {
+      pendingPostDetailRequests.delete(key)
     })
   }
 
   const invalidatePostDetail = (postId: number) => {
-    pendingPostDetailRequests.delete(postId)
-    removeCacheKey(cacheKeyForPost(postId))
+    const keyPrefix = cacheKeyPrefixForPost(postId)
+    const next = { ...cache.value }
+
+    for (const key of Object.keys(next)) {
+      if (key.startsWith(keyPrefix)) {
+        delete next[key]
+      }
+    }
+
+    for (const key of pendingPostDetailRequests.keys()) {
+      if (key.startsWith(keyPrefix)) {
+        pendingPostDetailRequests.delete(key)
+      }
+    }
+
+    cache.value = next
+  }
+
+  const updatePostDetailLike = (
+    postId: number,
+    like: PostLikeResponse,
+    viewerId: string | null = null
+  ) => {
+    const keyPrefix = cacheKeyPrefixForPost(postId)
+    const viewerKey = cacheKeyForPost(postId, viewerId)
+    const next = { ...cache.value }
+    let changed = false
+    const now = Date.now()
+
+    for (const [key, item] of Object.entries(next)) {
+      if (!key.startsWith(keyPrefix)) {
+        continue
+      }
+
+      next[key] = {
+        ...item,
+        post: {
+          ...item.post,
+          likeCount: like.likeCount,
+          likedByViewer: key === viewerKey ? like.likedByViewer : item.post.likedByViewer
+        },
+        lastAccessedAt: now
+      }
+      changed = true
+    }
+
+    if (changed) {
+      cache.value = next
+    }
   }
 
   return {
     getPostDetail,
     prefetchPostDetail,
-    invalidatePostDetail
+    invalidatePostDetail,
+    updatePostDetailLike
   }
 }

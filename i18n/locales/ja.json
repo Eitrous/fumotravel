@@ -72,17 +72,50 @@
     "taiwanProvinceLabel": "TAIWAN PROVINCE"
   },
   "auth": {
-    "eyebrow": "マジックリンクログイン",
+    "eyebrow": "ログイン / 登録",
     "title": "投稿するにはログイン。",
-    "description": "メールのリンクからこのパネルへ戻れます。",
+    "description": "パスワードまたはメールリンクでログインできます。",
     "emailLabel": "メールアドレス",
+    "passwordLabel": "パスワード",
+    "confirmPasswordLabel": "パスワード確認",
+    "passwordPlaceholder": "{min} 文字以上",
+    "confirmPasswordPlaceholder": "もう一度入力",
+    "passwordLogin": "パスワードログイン",
+    "linkLogin": "メールリンクログイン",
+    "register": "登録",
+    "modeLabel": "ログイン方法",
     "sendLink": "ログインリンクを送信",
-    "sending": "送信中…",
+    "submitting": "処理中...",
+    "sending": "送信中...",
     "browseFirst": "先に地図を見る",
-    "hint": "ログイン後は直前に開こうとしていた内容へ自動的に戻ります。指定がなければ投稿パネルを開きます。",
+    "hint": "ログイン後は元の場所に戻ります。指定がなければ投稿パネルを開きます。",
+    "magicLinkSuccess": "ログインリンクをメールに送りました。メール内のリンクを開くと、このサイトに戻って続きから操作できます。",
+    "registrationNeedsConfirmation": "登録を受け付けました。メールの確認リンクを開いてからログインしてください。",
     "success": "ログインリンクをメールに送りました。メール内のリンクを開くと、このサイトに戻って続きから操作できます。",
+    "modes": {
+      "password": {
+        "title": "パスワードでログイン。",
+        "description": "登録済みのメールアドレスとパスワードを入力してください。",
+        "submit": "ログイン"
+      },
+      "link": {
+        "title": "メールリンクでログイン。",
+        "description": "登録済みアカウントはメールリンクでも入れます。",
+        "submit": "ログインリンクを送信"
+      },
+      "register": {
+        "title": "登録してパスワードを設定。",
+        "description": "新しいアカウントには先にパスワードが必要です。",
+        "submit": "登録"
+      }
+    },
     "errors": {
       "requiredEmail": "メールアドレスを入力してください。",
+      "passwordTooShort": "パスワードは {min} 文字以上にしてください。",
+      "passwordMismatch": "パスワードが一致しません。",
+      "passwordFailed": "パスワードログインに失敗しました。",
+      "linkFailed": "ログインリンクの送信に失敗しました。",
+      "registerFailed": "登録に失敗しました。",
       "sendFailed": "ログインリンクの送信に失敗しました。"
     }
   },
@@ -111,13 +144,23 @@
     "publicCoordinates": "公開座標: {value}",
     "capturedAt": "撮影日時: {value}",
     "preview": "公開位置プレビュー",
+    "previousPhoto": "前の写真",
+    "nextPhoto": "次の写真",
+    "openPhotoViewer": "写真を拡大表示",
+    "closePhotoViewer": "写真表示を閉じる",
+    "like": "いいね",
+    "unlike": "いいねを取り消す",
+    "likeCount": "{count} 件のいいね",
+    "likeNotice": "いいねのお知らせ",
     "unnamedPlaceName": "場所名なし",
     "unnamedPlace": "名称未設定の場所",
     "openSubmit": "私も投稿する",
     "unavailableTitle": "この投稿は現在表示できません",
     "unavailableDescription": "まだ審査中か、リンクが無効になっている可能性があります。",
     "errors": {
-      "loadFailed": "投稿詳細の読み込みに失敗しました。"
+      "loadFailed": "投稿詳細の読み込みに失敗しました。",
+      "loginToLike": "いいねするにはログインしてください。",
+      "likeFailed": "いいねの更新に失敗しました。しばらくしてからもう一度お試しください。"
     }
   },
   "submit": {

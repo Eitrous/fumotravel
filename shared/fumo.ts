@@ -40,7 +40,6 @@ export type PublicMapFeatureProperties = {
   title: string
   placeName: string | null
   username: string
-  thumbUrl: string | null
   privacyMode: PrivacyMode
   capturedAt: string | null
 }
@@ -57,6 +56,8 @@ export type PublicPostDetail = {
   imageUrl: string | null
   thumbUrl: string | null
   photos: PostPhotoAsset[]
+  likeCount: number
+  likedByViewer: boolean
   placeName: string | null
   countryName: string | null
   regionName: string | null
@@ -121,6 +122,16 @@ export type PublicUserPage = {
   posts: UserPostSummary[]
 }
 
+export type PostLikePayload = {
+  liked: boolean
+}
+
+export type PostLikeResponse = {
+  postId: number
+  likeCount: number
+  likedByViewer: boolean
+}
+
 export type SubmitPostPayload = {
   title: string
   body: string | null
@@ -166,8 +177,8 @@ export const MAP_DARK_STYLE_URL =
   'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 export const MAP_DEFAULT_CENTER: [number, number] = [116.397389, 39.908722]
 export const MAP_DEFAULT_ZOOM = 1.55
-export const MAP_THUMBNAIL_ZOOM = 5.8
 export const MAX_TITLE_LENGTH = 80
 export const MAX_BODY_LENGTH = 1000
 export const MAX_POST_PHOTOS = 10
+export const MIN_PASSWORD_LENGTH = 8
 export const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{3,24}$/

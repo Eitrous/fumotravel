@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import type { GeoJSONSource, Map as MapLibreMap, Marker } from 'maplibre-gl'
+import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import type { PublicMapCollection, PublicMapFeatureProperties } from '~~/shared/fumo'
 import {
   MAP_DEFAULT_CENTER,
   MAP_DEFAULT_STYLE_URL,
   MAP_DARK_STYLE_URL,
-  MAP_DEFAULT_ZOOM,
-  MAP_THUMBNAIL_ZOOM
+  MAP_DEFAULT_ZOOM
 } from '~~/shared/fumo'
 import { applyTaiwanProvinceLabelPolicy } from '~~/app/composables/useMapPoliticalLabels'
 
@@ -32,11 +31,6 @@ const collection = shallowRef<PublicMapCollection>({
 })
 
 let maplibregl: typeof import('maplibre-gl') | null = null
-const thumbnailMarkers = new Map<number, Marker>()
-
-const shouldUseThumbnails = () => {
-  return Boolean(mapRef.value && mapRef.value.getZoom() >= MAP_THUMBNAIL_ZOOM)
-}
 
 const normalizeProperties = (raw: Record<string, unknown>): PublicMapFeatureProperties => {
   return {
@@ -44,7 +38,6 @@ const normalizeProperties = (raw: Record<string, unknown>): PublicMapFeatureProp
     title: String(raw.title || t('map.untitledPost')),
     placeName: raw.placeName ? String(raw.placeName) : null,
     username: String(raw.username || 'unknown'),
-    thumbUrl: raw.thumbUrl ? String(raw.thumbUrl) : null,
     privacyMode: raw.privacyMode === 'approx' ? 'approx' : 'exact',
     capturedAt: raw.capturedAt ? String(raw.capturedAt) : null
   }
@@ -66,15 +59,9 @@ const fetchGeoJson = async () => {
       west: bounds.getWest(),
       south: bounds.getSouth(),
       east: bounds.getEast(),
-      north: bounds.getNorth(),
-      zoom: mapRef.value.getZoom().toFixed(2)
+      north: bounds.getNorth()
     }
   })
-}
-
-const clearThumbnailMarkers = () => {
-  thumbnailMarkers.forEach((marker) => marker.remove())
-  thumbnailMarkers.clear()
 }
 
 const syncSelectionSource = () => {
@@ -97,94 +84,6 @@ const syncSelectionSource = () => {
         features: [selectedFeature]
       }
     : emptyCollection)
-
-  thumbnailMarkers.forEach((marker, id) => {
-    marker.getElement().classList.toggle('is-active', id === props.selectedPostId)
-  })
-}
-
-const createThumbnailMarker = (
-  map: MapLibreMap,
-  coordinates: [number, number],
-  featureProps: PublicMapFeatureProperties
-) => {
-  if (!maplibregl) {
-    return null
-  }
-
-  const el = document.createElement('button')
-  el.type = 'button'
-  el.className = 'map-thumb-marker'
-  el.classList.toggle('is-active', featureProps.id === props.selectedPostId)
-
-  if (featureProps.thumbUrl) {
-    const image = document.createElement('img')
-    image.src = featureProps.thumbUrl
-    image.alt = featureProps.title
-    el.append(image)
-  } else {
-    const fallback = document.createElement('i')
-    fallback.className = 'fa-solid fa-camera'
-    fallback.setAttribute('aria-hidden', 'true')
-    el.append(fallback)
-  }
-
-  el.addEventListener('click', () => {
-    emit('select-post', featureProps.id)
-  })
-
-  const marker = new maplibregl.Marker({
-    element: el,
-    anchor: 'bottom'
-  })
-
-  marker.setLngLat(coordinates).addTo(map)
-  thumbnailMarkers.set(featureProps.id, marker)
-  return marker
-}
-
-const syncThumbnailMarkers = () => {
-  if (!mapRef.value || !maplibregl) {
-    return
-  }
-
-  if (!shouldUseThumbnails()) {
-    clearThumbnailMarkers()
-    syncSelectionSource()
-    return
-  }
-
-  const renderedFeatures = mapRef.value.queryRenderedFeatures(undefined, {
-    layers: ['unclustered-point']
-  })
-
-  const nextIds = new Set<number>()
-
-  for (const feature of renderedFeatures) {
-    if (feature.geometry.type !== 'Point' || !feature.properties) {
-      continue
-    }
-
-    const featureProps = normalizeProperties(feature.properties)
-    const coordinates = feature.geometry.coordinates as [number, number]
-    nextIds.add(featureProps.id)
-
-    const existingMarker = thumbnailMarkers.get(featureProps.id)
-    if (!existingMarker) {
-      createThumbnailMarker(mapRef.value, coordinates, featureProps)
-      continue
-    }
-
-    existingMarker.setLngLat(coordinates)
-    existingMarker.getElement().classList.toggle('is-active', featureProps.id === props.selectedPostId)
-  }
-
-  thumbnailMarkers.forEach((marker, id) => {
-    if (!nextIds.has(id)) {
-      marker.remove()
-      thumbnailMarkers.delete(id)
-    }
-  })
 }
 
 const refreshSource = async () => {
@@ -200,7 +99,6 @@ const refreshSource = async () => {
 
     const source = mapRef.value.getSource('posts') as GeoJSONSource | null
     source?.setData(nextCollection)
-    syncThumbnailMarkers()
     syncSelectionSource()
   } catch {
     // Keep map interactive even if a fetch attempt fails.
@@ -229,9 +127,9 @@ const setupMapLayers = () => {
     data: emptyCollection
   })
 
-  // Theme-aware colors
-  const primaryColor = isDark.value ? '#ffffff' : '#000000'
-  const contrastColor = isDark.value ? '#000000' : '#ffffff'
+  // Theme-aware pin colors (green palette)
+  const primaryColor = isDark.value ? '#58c78f' : '#16925f'
+  const contrastColor = isDark.value ? '#0f120e' : '#f7f3ec'
 
   mapRef.value.addLayer({
     id: 'clusters',
@@ -279,7 +177,7 @@ const setupMapLayers = () => {
     source: 'selected-post',
     paint: {
       'circle-radius': 16,
-      'circle-color': isDark.value ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+      'circle-color': isDark.value ? 'rgba(88, 199, 143, 0.24)' : 'rgba(22, 146, 95, 0.2)',
       'circle-stroke-width': 3,
       'circle-stroke-color': primaryColor
     }
@@ -316,7 +214,6 @@ watch(isDark, (dark) => {
   mapRef.value.once('style.load', () => {
     applyPoliticalLabels()
     setupMapLayers()
-    syncThumbnailMarkers()
     syncSelectionSource()
   })
 })
@@ -353,9 +250,7 @@ onMounted(async () => {
     })
 
     mapRef.value?.on('mouseenter', 'unclustered-point', () => {
-      if (!shouldUseThumbnails()) {
-        mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
-      }
+      mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
     })
 
     mapRef.value?.on('mouseleave', 'unclustered-point', () => {
@@ -402,7 +297,6 @@ onMounted(async () => {
       void refreshSource()
     })
 
-    syncThumbnailMarkers()
     syncSelectionSource()
   })
 })
@@ -418,13 +312,11 @@ watch(
   () => locale.value,
   () => {
     applyPoliticalLabels()
-    syncThumbnailMarkers()
     syncSelectionSource()
   }
 )
 
 onBeforeUnmount(() => {
-  clearThumbnailMarkers()
   mapRef.value?.remove()
 })
 </script>

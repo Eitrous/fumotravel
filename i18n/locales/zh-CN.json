@@ -72,17 +72,50 @@
     "taiwanProvinceLabel": "TAIWAN PROVINCE"
   },
   "auth": {
-    "eyebrow": "邮箱魔法链接登录",
+    "eyebrow": "登录 / 注册",
     "title": "登录后即可投稿。",
-    "description": "邮箱链接会把你带回当前面板。",
+    "description": "可使用密码登录，也可以使用邮箱链接。",
     "emailLabel": "邮箱地址",
+    "passwordLabel": "密码",
+    "confirmPasswordLabel": "确认密码",
+    "passwordPlaceholder": "至少 {min} 位",
+    "confirmPasswordPlaceholder": "再次输入密码",
+    "passwordLogin": "密码登录",
+    "linkLogin": "邮箱链接登录",
+    "register": "注册",
+    "modeLabel": "登录方式",
     "sendLink": "发送登录链接",
-    "sending": "发送中…",
+    "submitting": "处理中...",
+    "sending": "发送中...",
     "browseFirst": "先看看地图",
     "hint": "登录完成后会自动回到你刚才想打开的内容；如果没有额外目标，默认会进入投稿面板。",
+    "magicLinkSuccess": "登录链接已经发到你的邮箱，打开邮件里的链接后会回到当前站点继续操作。",
+    "registrationNeedsConfirmation": "注册已提交，请打开邮箱确认链接后再登录。",
     "success": "登录链接已经发到你的邮箱，打开邮件里的链接后会回到当前站点继续操作。",
+    "modes": {
+      "password": {
+        "title": "使用密码登录。",
+        "description": "输入注册邮箱和密码。",
+        "submit": "登录"
+      },
+      "link": {
+        "title": "使用邮箱链接登录。",
+        "description": "已注册账号可以通过邮箱链接进入。",
+        "submit": "发送登录链接"
+      },
+      "register": {
+        "title": "注册并设置密码。",
+        "description": "新账号需要先设置密码。",
+        "submit": "注册"
+      }
+    },
     "errors": {
       "requiredEmail": "请输入邮箱地址。",
+      "passwordTooShort": "密码至少需要 {min} 位。",
+      "passwordMismatch": "两次输入的密码不一致。",
+      "passwordFailed": "密码登录失败。",
+      "linkFailed": "发送登录链接失败。",
+      "registerFailed": "注册失败。",
       "sendFailed": "发送登录链接失败。"
     }
   },
@@ -111,13 +144,23 @@
     "publicCoordinates": "公开坐标：{value}",
     "capturedAt": "拍摄时间：{value}",
     "preview": "公开位置预览",
+    "previousPhoto": "上一张照片",
+    "nextPhoto": "下一张照片",
+    "openPhotoViewer": "放大查看照片",
+    "closePhotoViewer": "关闭照片查看",
+    "like": "点赞",
+    "unlike": "取消点赞",
+    "likeCount": "{count} 个赞",
+    "likeNotice": "点赞提示",
     "unnamedPlaceName": "未填写地点名称",
     "unnamedPlace": "未命名地点",
     "openSubmit": "我也要投稿",
     "unavailableTitle": "这条投稿暂时不可见",
     "unavailableDescription": "它可能仍在审核中，或者链接已经失效。",
     "errors": {
-      "loadFailed": "帖子详情加载失败。"
+      "loadFailed": "帖子详情加载失败。",
+      "loginToLike": "请先登录再点赞。",
+      "likeFailed": "点赞失败，请稍后再试。"
     }
   },
   "submit": {

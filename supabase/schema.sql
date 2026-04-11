@@ -102,6 +102,13 @@ create table if not exists public.post_revision_photos (
   constraint post_revision_photos_image_path_unique unique (revision_id, image_path)
 );
 
+create table if not exists public.post_likes (
+  post_id bigint not null references public.posts (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  primary key (post_id, user_id)
+);
+
 create index if not exists posts_status_created_at_idx
   on public.posts (status, created_at desc);
 
@@ -120,6 +127,9 @@ create index if not exists post_revisions_status_created_at_idx
 
 create index if not exists post_revision_photos_revision_id_sort_order_idx
   on public.post_revision_photos (revision_id, sort_order);
+
+create index if not exists post_likes_user_id_created_at_idx
+  on public.post_likes (user_id, created_at desc);
 
 insert into public.post_photos (post_id, image_path, thumb_path, sort_order, created_at)
 select id, image_path, thumb_path, 0, created_at
@@ -180,6 +190,7 @@ alter table public.posts enable row level security;
 alter table public.post_photos enable row level security;
 alter table public.post_revisions enable row level security;
 alter table public.post_revision_photos enable row level security;
+alter table public.post_likes enable row level security;
 
 drop policy if exists "profiles_select_self" on public.profiles;
 create policy "profiles_select_self"
@@ -304,6 +315,35 @@ with check (
       and post_revisions.status = 'pending'
   )
 );
+
+drop policy if exists "post_likes_select_self" on public.post_likes;
+create policy "post_likes_select_self"
+on public.post_likes
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "post_likes_insert_self_approved" on public.post_likes;
+create policy "post_likes_insert_self_approved"
+on public.post_likes
+for insert
+to authenticated
+with check (
+  auth.uid() = user_id
+  and exists (
+    select 1
+    from public.posts
+    where posts.id = post_likes.post_id
+      and posts.status = 'approved'
+  )
+);
+
+drop policy if exists "post_likes_delete_self" on public.post_likes;
+create policy "post_likes_delete_self"
+on public.post_likes
+for delete
+to authenticated
+using (auth.uid() = user_id);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

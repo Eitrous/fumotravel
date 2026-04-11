@@ -72,17 +72,50 @@
     "taiwanProvinceLabel": "TAIWAN PROVINCE"
   },
   "auth": {
-    "eyebrow": "Magic Link Login",
+    "eyebrow": "Login / Register",
     "title": "Log in to submit.",
-    "description": "The email link returns you to this panel.",
+    "description": "Use a password or an email link.",
     "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "confirmPasswordLabel": "Confirm password",
+    "passwordPlaceholder": "At least {min} characters",
+    "confirmPasswordPlaceholder": "Enter the password again",
+    "passwordLogin": "Password login",
+    "linkLogin": "Email link login",
+    "register": "Register",
+    "modeLabel": "Login method",
     "sendLink": "Send login link",
-    "sending": "Sending…",
+    "submitting": "Working...",
+    "sending": "Sending...",
     "browseFirst": "Browse the map first",
     "hint": "After login, you will return to the thing you were trying to open. If there is no explicit target, the submit panel opens by default.",
+    "magicLinkSuccess": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
+    "registrationNeedsConfirmation": "Registration is submitted. Open the confirmation link in your email before logging in.",
     "success": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
+    "modes": {
+      "password": {
+        "title": "Log in with password.",
+        "description": "Use your registered email and password.",
+        "submit": "Log in"
+      },
+      "link": {
+        "title": "Log in with an email link.",
+        "description": "Registered accounts can enter through an email link.",
+        "submit": "Send login link"
+      },
+      "register": {
+        "title": "Register and set a password.",
+        "description": "New accounts need a password first.",
+        "submit": "Register"
+      }
+    },
     "errors": {
       "requiredEmail": "Please enter an email address.",
+      "passwordTooShort": "Password must be at least {min} characters.",
+      "passwordMismatch": "The passwords do not match.",
+      "passwordFailed": "Password login failed.",
+      "linkFailed": "Failed to send the login link.",
+      "registerFailed": "Registration failed.",
       "sendFailed": "Failed to send the login link."
     }
   },
@@ -111,13 +144,23 @@
     "publicCoordinates": "Public coordinates: {value}",
     "capturedAt": "Captured at: {value}",
     "preview": "Public location preview",
+    "previousPhoto": "Previous photo",
+    "nextPhoto": "Next photo",
+    "openPhotoViewer": "Open photo viewer",
+    "closePhotoViewer": "Close photo viewer",
+    "like": "Like",
+    "unlike": "Unlike",
+    "likeCount": "{count} likes",
+    "likeNotice": "Like notice",
     "unnamedPlaceName": "Unnamed place",
     "unnamedPlace": "Unnamed location",
     "openSubmit": "I want to submit too",
     "unavailableTitle": "This post is not available right now",
     "unavailableDescription": "It may still be under review, or the link may no longer be valid.",
     "errors": {
-      "loadFailed": "Failed to load post details."
+      "loadFailed": "Failed to load post details.",
+      "loginToLike": "Log in to like this post.",
+      "likeFailed": "Failed to update like. Please try again."
     }
   },
   "submit": {

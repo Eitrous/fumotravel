@@ -1,7 +1,11 @@
-import { createAdminServerClient } from '~~/server/utils/supabase'
+import type { PublicPostDetail } from '~~/shared/fumo'
+import {
+  createAdminServerClient,
+  getOptionalAuthenticatedUser
+} from '~~/server/utils/supabase'
 import { getOrderedPhotoRows, signPhotoRows, type PhotoRow } from '~~/server/utils/posts'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<PublicPostDetail> => {
   const id = Number(event.context.params?.id)
 
   if (Number.isNaN(id)) {
@@ -9,6 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const supabase = createAdminServerClient(event)
+  const auth = await getOptionalAuthenticatedUser(event)
 
   const { data, error } = await supabase
     .from('posts')
@@ -55,6 +60,37 @@ export default defineEventHandler(async (event) => {
     thumbUrl: null
   }
 
+  const { count: likeCount, error: likeCountError } = await supabase
+    .from('post_likes')
+    .select('post_id', { count: 'exact', head: true })
+    .eq('post_id', id)
+
+  if (likeCountError) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: likeCountError.message
+    })
+  }
+
+  let likedByViewer = false
+  if (auth) {
+    const { data: viewerLikes, error: viewerLikeError } = await supabase
+      .from('post_likes')
+      .select('post_id')
+      .eq('post_id', id)
+      .eq('user_id', auth.user.id)
+      .limit(1)
+
+    if (viewerLikeError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: viewerLikeError.message
+      })
+    }
+
+    likedByViewer = Boolean(viewerLikes?.length)
+  }
+
   return {
     id: data.id,
     title: data.title,
@@ -62,6 +98,8 @@ export default defineEventHandler(async (event) => {
     imageUrl: coverPhoto.imageUrl,
     thumbUrl: coverPhoto.thumbUrl,
     photos,
+    likeCount: likeCount ?? 0,
+    likedByViewer,
     placeName: data.place_name,
     countryName: data.country_name,
     regionName: data.region_name,

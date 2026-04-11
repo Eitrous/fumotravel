@@ -1,14 +1,12 @@
 import { getQuery } from 'h3'
 import type { PublicMapCollection } from '~~/shared/fumo'
-import { MAP_THUMBNAIL_ZOOM } from '~~/shared/fumo'
-import { createAdminServerClient, signStorageObjects } from '~~/server/utils/supabase'
+import { createAdminServerClient } from '~~/server/utils/supabase'
 
 type MapQuery = {
   west?: string
   south?: string
   east?: string
   north?: string
-  zoom?: string
 }
 
 export default defineEventHandler(async (event) => {
@@ -18,9 +16,8 @@ export default defineEventHandler(async (event) => {
   const south = Number(q.south)
   const east = Number(q.east)
   const north = Number(q.north)
-  const zoom = Number(q.zoom || 0)
 
-  if ([west, south, east, north, zoom].some(Number.isNaN)) {
+  if ([west, south, east, north].some(Number.isNaN)) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid bbox'
@@ -34,7 +31,6 @@ export default defineEventHandler(async (event) => {
     .select(`
       id,
       title,
-      thumb_path,
       place_name,
       public_lat,
       public_lng,
@@ -69,10 +65,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const thumbUrls = zoom >= MAP_THUMBNAIL_ZOOM
-    ? await signStorageObjects(event, (data || []).map((row: any) => row.thumb_path))
-    : new Map<string, string>()
-
   const features = (data || []).map((row: any) => ({
     type: 'Feature',
     geometry: {
@@ -84,7 +76,6 @@ export default defineEventHandler(async (event) => {
       title: row.title,
       placeName: row.place_name,
       username: row.profiles?.username ?? 'unknown',
-      thumbUrl: row.thumb_path ? thumbUrls.get(row.thumb_path) ?? null : null,
       privacyMode: row.privacy_mode,
       capturedAt: row.captured_at
     }

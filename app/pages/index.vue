@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <div class="workbench-sidebar__meta">
+          <!-- <div class="workbench-sidebar__meta">
             <p
               v-if="auth.ready.value && auth.viewer.value"
               class="workbench-sidebar__status"
@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
             <p v-else class="workbench-sidebar__status">
               {{ t('common.loadingAuth') }}
             </p>
-          </div>
+          </div> -->
         </div>
 
         <Transition name="workbench-panel-fade" mode="out-in">

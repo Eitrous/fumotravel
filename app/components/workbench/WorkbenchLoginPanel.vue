@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { MIN_PASSWORD_LENGTH } from '~~/shared/fumo'
+
+type AuthMode = 'password' | 'link' | 'register'
+
 const props = withDefaults(defineProps<{
   nextPath?: string | null
 }>(), {
@@ -7,12 +11,50 @@ const props = withDefaults(defineProps<{
 
 const auth = useAuthState()
 const { t } = useI18n()
+const mode = ref<AuthMode>('password')
 const email = ref('')
-const sending = ref(false)
+const password = ref('')
+const confirmPassword = ref('')
+const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
 const fallbackNextPath = computed(() => props.nextPath || '/?panel=submit')
+const requiresPassword = computed(() => mode.value !== 'link')
+const requiresConfirmPassword = computed(() => mode.value === 'register')
+
+const modeOptions = computed(() => [
+  {
+    value: 'password' as const,
+    label: t('auth.passwordLogin'),
+    icon: 'fa-key'
+  },
+  {
+    value: 'link' as const,
+    label: t('auth.linkLogin'),
+    icon: 'fa-envelope'
+  },
+  {
+    value: 'register' as const,
+    label: t('auth.register'),
+    icon: 'fa-user-plus'
+  }
+])
+
+const panelTitle = computed(() => t(`auth.modes.${mode.value}.title`))
+const panelDescription = computed(() => t(`auth.modes.${mode.value}.description`))
+
+const primaryActionLabel = computed(() => {
+  if (submitting.value) {
+    return t('auth.submitting')
+  }
+
+  return t(`auth.modes.${mode.value}.submit`)
+})
+
+const primaryActionIcon = computed(() => {
+  return modeOptions.value.find((option) => option.value === mode.value)?.icon || 'fa-key'
+})
 
 const redirectAfterLogin = async () => {
   if (!auth.ready.value || !auth.user.value) {
@@ -37,45 +79,110 @@ watch(
   { immediate: true }
 )
 
-const canSubmit = computed(() => {
-  return Boolean(email.value.trim()) && !sending.value
-})
+const setMode = (nextMode: AuthMode) => {
+  mode.value = nextMode
+  errorMessage.value = ''
+  successMessage.value = ''
+}
 
-const sendMagicLink = async () => {
+const validateForm = () => {
+  if (!email.value.trim()) {
+    errorMessage.value = t('auth.errors.requiredEmail')
+    return false
+  }
+
+  if (requiresPassword.value && password.value.length < MIN_PASSWORD_LENGTH) {
+    errorMessage.value = t('auth.errors.passwordTooShort', { min: MIN_PASSWORD_LENGTH })
+    return false
+  }
+
+  if (requiresConfirmPassword.value && password.value !== confirmPassword.value) {
+    errorMessage.value = t('auth.errors.passwordMismatch')
+    return false
+  }
+
+  return true
+}
+
+const submitAuth = async () => {
   errorMessage.value = ''
   successMessage.value = ''
 
-  if (!email.value.trim()) {
-    errorMessage.value = t('auth.errors.requiredEmail')
+  if (!validateForm()) {
     return
   }
 
-  sending.value = true
+  submitting.value = true
 
   try {
-    await auth.sendMagicLink(email.value.trim(), fallbackNextPath.value)
-    successMessage.value = t('auth.success')
+    const nextEmail = email.value.trim()
+
+    if (mode.value === 'password') {
+      await auth.signInWithPassword(nextEmail, password.value)
+      await redirectAfterLogin()
+      return
+    }
+
+    if (mode.value === 'register') {
+      const data = await auth.signUpWithPassword(nextEmail, password.value)
+      if (data.session) {
+        await redirectAfterLogin()
+        return
+      }
+
+      successMessage.value = t('auth.registrationNeedsConfirmation')
+      return
+    }
+
+    await auth.sendMagicLink(nextEmail, fallbackNextPath.value)
+    successMessage.value = t('auth.magicLinkSuccess')
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : t('auth.errors.sendFailed')
+    errorMessage.value = error instanceof Error ? error.message : t(`auth.errors.${mode.value}Failed`)
   } finally {
-    sending.value = false
+    submitting.value = false
   }
 }
 
+const handleEnter = () => {
+  void submitAuth()
+}
+
+const canSubmit = computed(() => {
+  return Boolean(email.value.trim()) && !submitting.value
+})
+
 useWorkbenchToolbarAction(computed(() => ({
-  label: sending.value ? t('auth.sending') : t('auth.sendLink'),
-  icon: 'fa-envelope',
-  run: sendMagicLink,
+  label: primaryActionLabel.value,
+  icon: primaryActionIcon.value,
+  run: submitAuth,
   disabled: !canSubmit.value,
-  loading: sending.value
+  loading: submitting.value
 })))
 </script>
 
 <template>
   <section class="workbench-panel workbench-panel--poster">
     <span class="eyebrow">{{ t('auth.eyebrow') }}</span>
-    <h2 class="workbench-panel__title workbench-panel__title--poster">{{ t('auth.title') }}</h2>
-    <p class="workbench-panel__copy workbench-panel__copy--poster">{{ t('auth.description') }}</p>
+    <h2 class="workbench-panel__title workbench-panel__title--poster">{{ panelTitle }}</h2>
+    <p class="workbench-panel__copy workbench-panel__copy--poster">{{ panelDescription }}</p>
+
+    <div class="auth-mode-switcher" role="tablist" :aria-label="t('auth.modeLabel')">
+      <button
+        v-for="option in modeOptions"
+        :key="option.value"
+        class="workbench-icon-button"
+        :class="{ 'is-active': mode === option.value }"
+        type="button"
+        role="tab"
+        :aria-selected="mode === option.value"
+        :title="option.label"
+        :aria-label="option.label"
+        @click="setMode(option.value)"
+      >
+        <i class="button-icon fa-solid" :class="option.icon" aria-hidden="true" />
+        <span class="sr-only">{{ option.label }}</span>
+      </button>
+    </div>
 
     <label class="field-label">
       <span>{{ t('auth.emailLabel') }}</span>
@@ -85,7 +192,31 @@ useWorkbenchToolbarAction(computed(() => ({
         type="email"
         autocomplete="email"
         placeholder="you@example.com"
-        @keyup.enter="sendMagicLink"
+        @keyup.enter="handleEnter"
+      >
+    </label>
+
+    <label v-if="requiresPassword" class="field-label">
+      <span>{{ t('auth.passwordLabel') }}</span>
+      <input
+        v-model="password"
+        class="field-input"
+        type="password"
+        :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
+        :placeholder="t('auth.passwordPlaceholder', { min: MIN_PASSWORD_LENGTH })"
+        @keyup.enter="handleEnter"
+      >
+    </label>
+
+    <label v-if="requiresConfirmPassword" class="field-label">
+      <span>{{ t('auth.confirmPasswordLabel') }}</span>
+      <input
+        v-model="confirmPassword"
+        class="field-input"
+        type="password"
+        autocomplete="new-password"
+        :placeholder="t('auth.confirmPasswordPlaceholder')"
+        @keyup.enter="handleEnter"
       >
     </label>
 

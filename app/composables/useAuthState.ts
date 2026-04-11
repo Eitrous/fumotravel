@@ -72,6 +72,36 @@ export const useAuthState = () => {
     return viewer.value
   }
 
+  const signInWithPassword = async (email: string, password: string) => {
+    const supabase = useSupabaseBrowserClient()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+
+    if (error) {
+      throw error
+    }
+
+    await applySession(data.session ?? null)
+    return data
+  }
+
+  const signUpWithPassword = async (email: string, password: string) => {
+    const supabase = useSupabaseBrowserClient()
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    })
+
+    if (error) {
+      throw error
+    }
+
+    await applySession(data.session ?? null)
+    return data
+  }
+
   const sendMagicLink = async (email: string, nextPath?: string) => {
     const supabase = useSupabaseBrowserClient()
     const redirectTarget = new URL('/', window.location.origin)
@@ -84,7 +114,7 @@ export const useAuthState = () => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        shouldCreateUser: true,
+        shouldCreateUser: false,
         emailRedirectTo: redirectTarget.toString()
       }
     })
@@ -121,6 +151,8 @@ export const useAuthState = () => {
     authHeaders,
     init,
     refreshViewer,
+    signInWithPassword,
+    signUpWithPassword,
     sendMagicLink,
     signOut
   }
