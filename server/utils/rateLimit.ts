@@ -4,9 +4,11 @@ import {
   createError,
   getRequestHeader,
   getRequestIP,
+  getRequestURL,
   setResponseHeader,
   type H3Event
 } from 'h3'
+import { notifySecurityAlert } from '~~/server/utils/securityAlert'
 
 type RateLimitKey =
   | 'geocodeIp'
@@ -17,6 +19,7 @@ type RateLimitKey =
   | 'likePostUser'
   | 'submitIp'
   | 'submitUser'
+  | 'securityReportIp'
 
 type RateLimiterSet = Record<RateLimitKey, Ratelimit>
 
@@ -86,6 +89,11 @@ const getLimiters = () => {
       ...options,
       prefix: `${RATE_LIMIT_PREFIX}:submit:user`,
       limiter: Ratelimit.slidingWindow(10, '1 h')
+    }),
+    securityReportIp: new Ratelimit({
+      ...options,
+      prefix: `${RATE_LIMIT_PREFIX}:security-report:ip`,
+      limiter: Ratelimit.slidingWindow(30, '1 m')
     })
   }
 
@@ -153,10 +161,25 @@ export const enforceRateLimit = async (
   setRateLimitHeaders(event, result)
 
   if (!result.success) {
+    const url = getRequestURL(event)
+    await notifySecurityAlert(event, {
+      type: 'rate_limit_exceeded',
+      severity: 'warning',
+      message: `Rate limit exceeded: ${key}`,
+      fingerprint: `rate-limit:${key}:${url.pathname}:${identifier}`,
+      metadata: {
+        limiter: key,
+        identifier,
+        path: url.pathname,
+        limit: result.limit,
+        remaining: result.remaining,
+        reset: result.reset
+      }
+    })
+
     throw createError({
       statusCode: 429,
       statusMessage: 'Too many requests. Please try again later.'
     })
   }
 }
-

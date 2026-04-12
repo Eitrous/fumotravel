@@ -1,6 +1,6 @@
 import { getRouterParam, type H3Event } from 'h3'
 import type { EditablePostDetail } from '~~/shared/fumo'
-import { createAdminServerClient, requireAuthenticatedUser } from '~~/server/utils/supabase'
+import { createPublicServerClient, requireAuthenticatedUser } from '~~/server/utils/supabase'
 import {
   getOrderedPhotoRows,
   signEditablePhotoRows,
@@ -50,8 +50,8 @@ export default defineEventHandler(async (event): Promise<EditablePostDetail> => 
     })
   }
 
-  const { user } = await requireAuthenticatedUser(event)
-  const supabase = createAdminServerClient(event)
+  const { accessToken, user } = await requireAuthenticatedUser(event)
+  const supabase = createPublicServerClient(event, accessToken)
   const { data: post, error: postError } = await supabase
     .from('posts')
     .select(`

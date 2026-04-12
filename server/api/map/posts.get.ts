@@ -1,6 +1,6 @@
 import { getQuery } from 'h3'
 import type { PublicMapCollection } from '~~/shared/fumo'
-import { createAdminServerClient } from '~~/server/utils/supabase'
+import { createPublicServerClient } from '~~/server/utils/supabase'
 import { enforceRateLimit, getRateLimitIdentifier } from '~~/server/utils/rateLimit'
 
 type MapQuery = {
@@ -27,23 +27,20 @@ export default defineEventHandler(async (event) => {
 
   await enforceRateLimit(event, 'mapIp', getRateLimitIdentifier(event))
 
-  const supabase = createAdminServerClient(event)
+  const supabase = createPublicServerClient(event)
 
   let query = supabase
-    .from('posts')
+    .from('public_approved_posts')
     .select(`
       id,
+      user_id,
       title,
       place_name,
       public_lat,
       public_lng,
       privacy_mode,
-      captured_at,
-      profiles!posts_user_id_fkey (
-        username
-      )
+      captured_at
     `)
-    .eq('status', 'approved')
     .not('public_lat', 'is', null)
     .not('public_lng', 'is', null)
     .gte('public_lat', south)
@@ -68,6 +65,27 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const userIds = [...new Set((data || []).map((row: any) => row.user_id).filter(Boolean))]
+  const profilesById = new Map<string, { username: string | null }>()
+
+  if (userIds.length) {
+    const { data: profiles, error: profilesError } = await supabase
+      .from('public_profiles')
+      .select('id, username')
+      .in('id', userIds)
+
+    if (profilesError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: profilesError.message
+      })
+    }
+
+    for (const profile of profiles || []) {
+      profilesById.set(profile.id, profile)
+    }
+  }
+
   const features = (data || []).map((row: any) => ({
     type: 'Feature',
     geometry: {
@@ -78,7 +96,7 @@ export default defineEventHandler(async (event) => {
       id: row.id,
       title: row.title,
       placeName: row.place_name,
-      username: row.profiles?.username ?? 'unknown',
+      username: profilesById.get(row.user_id)?.username ?? 'unknown',
       privacyMode: row.privacy_mode,
       capturedAt: row.captured_at
     }

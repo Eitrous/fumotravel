@@ -2,7 +2,7 @@ import { getRouterParam } from 'h3'
 import type { PublicUserPage } from '~~/shared/fumo'
 import { USERNAME_PATTERN } from '~~/shared/fumo'
 import {
-  createAdminServerClient,
+  createPublicServerClient,
   getOptionalAuthenticatedUser,
   signStorageObjects
 } from '~~/server/utils/supabase'
@@ -18,10 +18,10 @@ export default defineEventHandler(async (event): Promise<PublicUserPage> => {
     })
   }
 
-  const supabase = createAdminServerClient(event)
+  const supabase = createPublicServerClient(event)
   const auth = await getOptionalAuthenticatedUser(event)
   const { data: profile, error: profileError } = await supabase
-    .from('profiles')
+    .from('public_profiles')
     .select('id, username, avatar_url')
     .eq('username', username)
     .single()
@@ -34,34 +34,38 @@ export default defineEventHandler(async (event): Promise<PublicUserPage> => {
   }
 
   const isSelf = auth?.user.id === profile.id
-  let postsQuery = supabase
-    .from('posts')
-    .select(`
-      id,
-      title,
-      body,
+  const postsClient = isSelf && auth
+    ? createPublicServerClient(event, auth.accessToken)
+    : supabase
+
+  const postsSelect = `
+    id,
+    title,
+    body,
+    image_path,
+    thumb_path,
+    place_name,
+    status,
+    captured_at,
+    created_at,
+    updated_at
+  `
+
+  const selfPostsSelect = `
+    ${postsSelect},
+    post_photos (
       image_path,
       thumb_path,
-      place_name,
-      status,
-      captured_at,
-      created_at,
-      updated_at,
-      post_photos (
-        image_path,
-        thumb_path,
-        sort_order
-      )
-    `)
+      sort_order
+    )
+  `
+
+  const { data: rows, error: postsError } = await postsClient
+    .from(isSelf ? 'posts' : 'public_approved_posts')
+    .select(isSelf ? selfPostsSelect : postsSelect)
     .eq('user_id', profile.id)
     .order('created_at', { ascending: false })
     .limit(100)
-
-  if (!isSelf) {
-    postsQuery = postsQuery.eq('status', 'approved')
-  }
-
-  const { data: rows, error: postsError } = await postsQuery
 
   if (postsError) {
     throw createError({
@@ -73,9 +77,31 @@ export default defineEventHandler(async (event): Promise<PublicUserPage> => {
   const posts = rows || []
   const postIds = posts.map((post) => post.id)
   const pendingRevisionPostIds = new Set<number>()
+  const publicPhotoRowsByPostId = new Map<number, PhotoRow[]>()
+
+  if (!isSelf && postIds.length) {
+    const { data: publicPhotoRows, error: publicPhotosError } = await supabase
+      .from('public_approved_post_photos')
+      .select('post_id, image_path, thumb_path, sort_order')
+      .in('post_id', postIds)
+      .order('sort_order', { ascending: true })
+
+    if (publicPhotosError) {
+      throw createError({
+        statusCode: 500,
+        statusMessage: publicPhotosError.message
+      })
+    }
+
+    for (const photo of publicPhotoRows || []) {
+      const rowsForPost = publicPhotoRowsByPostId.get(photo.post_id) || []
+      rowsForPost.push(photo)
+      publicPhotoRowsByPostId.set(photo.post_id, rowsForPost)
+    }
+  }
 
   if (isSelf && postIds.length) {
-    const { data: pendingRevisions, error: revisionsError } = await supabase
+    const { data: pendingRevisions, error: revisionsError } = await postsClient
       .from('post_revisions')
       .select('post_id')
       .in('post_id', postIds)
@@ -95,7 +121,9 @@ export default defineEventHandler(async (event): Promise<PublicUserPage> => {
 
   const coverPathsByPostId = new Map<number, string>()
   for (const post of posts) {
-    const photoRows = getOrderedPhotoRows(post.post_photos as PhotoRow[], post)
+    const photoRows = isSelf
+      ? getOrderedPhotoRows(post.post_photos as PhotoRow[], post)
+      : getOrderedPhotoRows(publicPhotoRowsByPostId.get(post.id), post)
     const coverPhoto = photoRows[0]
 
     if (coverPhoto) {

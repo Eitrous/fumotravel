@@ -1,6 +1,6 @@
 import type { PublicPostDetail } from '~~/shared/fumo'
 import {
-  createAdminServerClient,
+  createPublicServerClient,
   getOptionalAuthenticatedUser
 } from '~~/server/utils/supabase'
 import { getOrderedPhotoRows, signPhotoRows, type PhotoRow } from '~~/server/utils/posts'
@@ -12,13 +12,14 @@ export default defineEventHandler(async (event): Promise<PublicPostDetail> => {
     throw createError({ statusCode: 400, statusMessage: 'Invalid id' })
   }
 
-  const supabase = createAdminServerClient(event)
+  const supabase = createPublicServerClient(event)
   const auth = await getOptionalAuthenticatedUser(event)
 
   const { data, error } = await supabase
-    .from('posts')
+    .from('public_approved_posts')
     .select(`
       id,
+      user_id,
       title,
       body,
       image_path,
@@ -31,19 +32,9 @@ export default defineEventHandler(async (event): Promise<PublicPostDetail> => {
       public_lng,
       privacy_mode,
       captured_at,
-      created_at,
-      post_photos (
-        image_path,
-        thumb_path,
-        sort_order
-      ),
-      profiles!posts_user_id_fkey (
-        username,
-        avatar_url
-      )
+      created_at
     `)
     .eq('id', id)
-    .eq('status', 'approved')
     .single()
 
   if (error || !data) {
@@ -53,17 +44,44 @@ export default defineEventHandler(async (event): Promise<PublicPostDetail> => {
     })
   }
 
-  const photoRows = getOrderedPhotoRows(data.post_photos as PhotoRow[], data)
+  const { data: photoData, error: photosError } = await supabase
+    .from('public_approved_post_photos')
+    .select('image_path, thumb_path, sort_order')
+    .eq('post_id', id)
+    .order('sort_order', { ascending: true })
+
+  if (photosError) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: photosError.message
+    })
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('public_profiles')
+    .select('username, avatar_url')
+    .eq('id', data.user_id)
+    .maybeSingle()
+
+  if (profileError) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: profileError.message
+    })
+  }
+
+  const photoRows = getOrderedPhotoRows(photoData as PhotoRow[], data)
   const photos = await signPhotoRows(event, photoRows, 60 * 60)
   const coverPhoto = photos[0] || {
     imageUrl: null,
     thumbUrl: null
   }
 
-  const { count: likeCount, error: likeCountError } = await supabase
-    .from('post_likes')
-    .select('post_id', { count: 'exact', head: true })
+  const { data: likeCount, error: likeCountError } = await supabase
+    .from('public_approved_post_like_counts')
+    .select('like_count')
     .eq('post_id', id)
+    .maybeSingle()
 
   if (likeCountError) {
     throw createError({
@@ -74,7 +92,8 @@ export default defineEventHandler(async (event): Promise<PublicPostDetail> => {
 
   let likedByViewer = false
   if (auth) {
-    const { data: viewerLikes, error: viewerLikeError } = await supabase
+    const authSupabase = createPublicServerClient(event, auth.accessToken)
+    const { data: viewerLikes, error: viewerLikeError } = await authSupabase
       .from('post_likes')
       .select('post_id')
       .eq('post_id', id)
@@ -98,7 +117,7 @@ export default defineEventHandler(async (event): Promise<PublicPostDetail> => {
     imageUrl: coverPhoto.imageUrl,
     thumbUrl: coverPhoto.thumbUrl,
     photos,
-    likeCount: likeCount ?? 0,
+    likeCount: likeCount?.like_count ?? 0,
     likedByViewer,
     placeName: data.place_name,
     countryName: data.country_name,
@@ -114,8 +133,8 @@ export default defineEventHandler(async (event): Promise<PublicPostDetail> => {
     capturedAt: data.captured_at,
     createdAt: data.created_at,
     author: {
-      username: data.profiles?.username ?? 'unknown',
-      avatarUrl: data.profiles?.avatar_url ?? null
+      username: profile?.username ?? 'unknown',
+      avatarUrl: profile?.avatar_url ?? null
     }
   }
 })

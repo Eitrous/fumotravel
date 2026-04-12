@@ -80,11 +80,14 @@ const mapProfileRow = (profile: ProfileRow): AppProfile => {
   }
 }
 
-export const ensureProfile = async (event: H3Event, user: User) => {
-  const admin = createAdminServerClient(event)
-  const { error: upsertError } = await admin
+export const ensureProfile = async (event: H3Event, user: User, accessToken: string) => {
+  const supabase = createPublicServerClient(event, accessToken)
+  const { error: upsertError } = await supabase
     .from('profiles')
-    .upsert({ id: user.id }, { onConflict: 'id' })
+    .upsert({ id: user.id }, {
+      onConflict: 'id',
+      ignoreDuplicates: true
+    })
 
   if (upsertError) {
     throw createError({
@@ -93,7 +96,7 @@ export const ensureProfile = async (event: H3Event, user: User) => {
     })
   }
 
-  const { data, error } = await admin
+  const { data, error } = await supabase
     .from('profiles')
     .select(PROFILE_FIELDS)
     .eq('id', user.id)
@@ -155,7 +158,7 @@ export const getOptionalAuthenticatedUser = async (event: H3Event) => {
 
 export const requireAdminUser = async (event: H3Event) => {
   const auth = await requireAuthenticatedUser(event)
-  const profile = await ensureProfile(event, auth.user)
+  const profile = await ensureProfile(event, auth.user, auth.accessToken)
 
   if (profile.role !== 'admin') {
     throw createError({

@@ -1,13 +1,13 @@
 import { readBody } from 'h3'
 import { USERNAME_PATTERN } from '~~/shared/fumo'
 import {
-  createAdminServerClient,
+  createPublicServerClient,
   requireAuthenticatedUser
 } from '~~/server/utils/supabase'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ username?: string }>(event)
-  const { user } = await requireAuthenticatedUser(event)
+  const { accessToken, user } = await requireAuthenticatedUser(event)
 
   const username = body.username?.trim().toLowerCase()
 
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const supabase = createAdminServerClient(event)
+  const supabase = createPublicServerClient(event, accessToken)
   const { data, error } = await supabase
     .from('profiles')
     .upsert({

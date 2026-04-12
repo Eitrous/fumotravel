@@ -1,7 +1,7 @@
 import { readBody } from 'h3'
 import type { PostLikePayload, PostLikeResponse } from '~~/shared/fumo'
 import {
-  createAdminServerClient,
+  createPublicServerClient,
   ensureProfile,
   requireAuthenticatedUser
 } from '~~/server/utils/supabase'
@@ -24,18 +24,17 @@ export default defineEventHandler(async (event): Promise<PostLikeResponse> => {
     })
   }
 
-  const { user } = await requireAuthenticatedUser(event)
+  const { accessToken, user } = await requireAuthenticatedUser(event)
   await enforceRateLimit(event, 'likeUser', user.id)
   await enforceRateLimit(event, 'likePostUser', `${user.id}:${id}`)
 
-  await ensureProfile(event, user)
+  await ensureProfile(event, user, accessToken)
 
-  const supabase = createAdminServerClient(event)
+  const supabase = createPublicServerClient(event, accessToken)
   const { data: post, error: postError } = await supabase
-    .from('posts')
+    .from('public_approved_posts')
     .select('id')
     .eq('id', id)
-    .eq('status', 'approved')
     .single()
 
   if (postError || !post) {
@@ -77,10 +76,11 @@ export default defineEventHandler(async (event): Promise<PostLikeResponse> => {
     }
   }
 
-  const { count: likeCount, error: countError } = await supabase
-    .from('post_likes')
-    .select('post_id', { count: 'exact', head: true })
+  const { data: likeCount, error: countError } = await supabase
+    .from('public_approved_post_like_counts')
+    .select('like_count')
     .eq('post_id', id)
+    .maybeSingle()
 
   if (countError) {
     throw createError({
@@ -91,7 +91,7 @@ export default defineEventHandler(async (event): Promise<PostLikeResponse> => {
 
   return {
     postId: id,
-    likeCount: likeCount ?? 0,
+    likeCount: likeCount?.like_count ?? 0,
     likedByViewer: body.liked
   }
 })

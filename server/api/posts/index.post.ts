@@ -1,7 +1,7 @@
 import { readBody } from 'h3'
 import type { SubmitPostPayload } from '~~/shared/fumo'
 import {
-  createAdminServerClient,
+  createPublicServerClient,
   ensureProfile,
   requireAuthenticatedUser
 } from '~~/server/utils/supabase'
@@ -16,10 +16,10 @@ export default defineEventHandler(async (event) => {
   await enforceRateLimit(event, 'submitIp', getRateLimitIdentifier(event))
 
   const body = await readBody<SubmitPostPayload>(event)
-  const { user } = await requireAuthenticatedUser(event)
+  const { accessToken, user } = await requireAuthenticatedUser(event)
   await enforceRateLimit(event, 'submitUser', user.id)
 
-  const profile = await ensureProfile(event, user)
+  const profile = await ensureProfile(event, user, accessToken)
 
   if (!profile.username) {
     throw createError({
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const supabase = createAdminServerClient(event)
+  const supabase = createPublicServerClient(event, accessToken)
   const payload = normalizePostPayload(body, user.id)
 
   const { data, error } = await supabase

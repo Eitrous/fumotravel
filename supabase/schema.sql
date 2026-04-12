@@ -131,6 +131,66 @@ create index if not exists post_revision_photos_revision_id_sort_order_idx
 create index if not exists post_likes_user_id_created_at_idx
   on public.post_likes (user_id, created_at desc);
 
+create or replace view public.public_profiles
+with (security_barrier = true)
+as
+select
+  id,
+  username,
+  avatar_url
+from public.profiles
+where username is not null;
+
+create or replace view public.public_approved_posts
+with (security_barrier = true)
+as
+select
+  id,
+  user_id,
+  title,
+  body,
+  image_path,
+  thumb_path,
+  place_name,
+  country_name,
+  region_name,
+  city_name,
+  public_lat,
+  public_lng,
+  privacy_mode,
+  captured_at,
+  created_at,
+  updated_at,
+  status
+from public.posts
+where status = 'approved';
+
+create or replace view public.public_approved_post_photos
+with (security_barrier = true)
+as
+select
+  post_photos.post_id,
+  post_photos.image_path,
+  post_photos.thumb_path,
+  post_photos.sort_order,
+  post_photos.created_at
+from public.post_photos
+join public.posts
+  on posts.id = post_photos.post_id
+where posts.status = 'approved';
+
+create or replace view public.public_approved_post_like_counts
+with (security_barrier = true)
+as
+select
+  posts.id as post_id,
+  count(post_likes.user_id)::integer as like_count
+from public.posts
+left join public.post_likes
+  on post_likes.post_id = posts.id
+where posts.status = 'approved'
+group by posts.id;
+
 insert into public.post_photos (post_id, image_path, thumb_path, sort_order, created_at)
 select id, image_path, thumb_path, 0, created_at
 from public.posts
@@ -192,13 +252,27 @@ alter table public.post_revisions enable row level security;
 alter table public.post_revision_photos enable row level security;
 alter table public.post_likes enable row level security;
 
-revoke insert, update on public.profiles from anon, authenticated;
+revoke all on public.profiles, public.posts, public.post_photos, public.post_revisions, public.post_revision_photos, public.post_likes
+  from public, anon, authenticated;
+revoke all on public.public_profiles, public.public_approved_posts, public.public_approved_post_photos, public.public_approved_post_like_counts
+  from public, anon, authenticated;
+
+grant select on public.public_profiles, public.public_approved_posts, public.public_approved_post_photos, public.public_approved_post_like_counts
+  to anon, authenticated;
+
+grant select on public.profiles to authenticated;
 revoke insert (id, username, avatar_url, role, created_at, updated_at)
   on public.profiles from anon, authenticated;
 revoke update (id, username, avatar_url, role, created_at, updated_at)
   on public.profiles from anon, authenticated;
 grant insert (id, username, avatar_url) on public.profiles to authenticated;
 grant update (username, avatar_url) on public.profiles to authenticated;
+
+grant select, insert, update, delete on public.posts to authenticated;
+grant select, insert, delete on public.post_photos to authenticated;
+grant select, insert, update, delete on public.post_revisions to authenticated;
+grant select, insert, delete on public.post_revision_photos to authenticated;
+grant select, insert, delete on public.post_likes to authenticated;
 
 drop policy if exists "profiles_select_self" on public.profiles;
 create policy "profiles_select_self"
@@ -223,11 +297,12 @@ using (auth.uid() = id)
 with check (auth.uid() = id);
 
 drop policy if exists "posts_select_approved" on public.posts;
-create policy "posts_select_approved"
+drop policy if exists "posts_select_self" on public.posts;
+create policy "posts_select_self"
 on public.posts
 for select
-to anon, authenticated
-using (status = 'approved' or auth.uid() = user_id);
+to authenticated
+using (auth.uid() = user_id);
 
 drop policy if exists "posts_insert_self" on public.posts;
 create policy "posts_insert_self"
@@ -244,17 +319,25 @@ to authenticated
 using (auth.uid() = user_id and status = 'pending')
 with check (auth.uid() = user_id and status = 'pending');
 
+drop policy if exists "posts_delete_self_pending" on public.posts;
+create policy "posts_delete_self_pending"
+on public.posts
+for delete
+to authenticated
+using (auth.uid() = user_id and status = 'pending');
+
 drop policy if exists "post_photos_select_visible" on public.post_photos;
-create policy "post_photos_select_visible"
+drop policy if exists "post_photos_select_self" on public.post_photos;
+create policy "post_photos_select_self"
 on public.post_photos
 for select
-to anon, authenticated
+to authenticated
 using (
   exists (
     select 1
     from public.posts
     where posts.id = post_photos.post_id
-      and (posts.status = 'approved' or auth.uid() = posts.user_id)
+      and posts.user_id = auth.uid()
   )
 );
 
@@ -264,6 +347,21 @@ on public.post_photos
 for insert
 to authenticated
 with check (
+  exists (
+    select 1
+    from public.posts
+    where posts.id = post_photos.post_id
+      and posts.user_id = auth.uid()
+      and posts.status = 'pending'
+  )
+);
+
+drop policy if exists "post_photos_delete_self_pending" on public.post_photos;
+create policy "post_photos_delete_self_pending"
+on public.post_photos
+for delete
+to authenticated
+using (
   exists (
     select 1
     from public.posts
@@ -285,7 +383,17 @@ create policy "post_revisions_insert_self"
 on public.post_revisions
 for insert
 to authenticated
-with check (auth.uid() = user_id and status = 'pending');
+with check (
+  auth.uid() = user_id
+  and status = 'pending'
+  and exists (
+    select 1
+    from public.posts
+    where posts.id = post_revisions.post_id
+      and posts.user_id = auth.uid()
+      and posts.status = 'approved'
+  )
+);
 
 drop policy if exists "post_revisions_update_self" on public.post_revisions;
 create policy "post_revisions_update_self"
@@ -293,7 +401,24 @@ on public.post_revisions
 for update
 to authenticated
 using (auth.uid() = user_id and status = 'pending')
-with check (auth.uid() = user_id and status = 'pending');
+with check (
+  auth.uid() = user_id
+  and status = 'pending'
+  and exists (
+    select 1
+    from public.posts
+    where posts.id = post_revisions.post_id
+      and posts.user_id = auth.uid()
+      and posts.status = 'approved'
+  )
+);
+
+drop policy if exists "post_revisions_delete_self_pending" on public.post_revisions;
+create policy "post_revisions_delete_self_pending"
+on public.post_revisions
+for delete
+to authenticated
+using (auth.uid() = user_id and status = 'pending');
 
 drop policy if exists "post_revision_photos_select_self" on public.post_revision_photos;
 create policy "post_revision_photos_select_self"
@@ -324,6 +449,21 @@ with check (
   )
 );
 
+drop policy if exists "post_revision_photos_delete_self_pending" on public.post_revision_photos;
+create policy "post_revision_photos_delete_self_pending"
+on public.post_revision_photos
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.post_revisions
+    where post_revisions.id = post_revision_photos.revision_id
+      and post_revisions.user_id = auth.uid()
+      and post_revisions.status = 'pending'
+  )
+);
+
 drop policy if exists "post_likes_select_self" on public.post_likes;
 create policy "post_likes_select_self"
 on public.post_likes
@@ -340,9 +480,8 @@ with check (
   auth.uid() = user_id
   and exists (
     select 1
-    from public.posts
-    where posts.id = post_likes.post_id
-      and posts.status = 'approved'
+    from public.public_approved_posts
+    where public_approved_posts.id = post_likes.post_id
   )
 );
 

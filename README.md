@@ -90,4 +90,15 @@ npm run dev
 npm run build
 ```
 
+## Vercel Security Baseline
+
+Set these private environment variables in Vercel Project Settings -> Environment Variables:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `SECURITY_ALERT_WEBHOOK_URL`
+- `SECURITY_ALERT_WEBHOOK_TOKEN` (optional)
+
+Security headers are emitted by Nitro middleware. CSP starts in `Content-Security-Policy-Report-Only` mode and reports to `/api/security/csp-report`; review reports before switching to an enforcing CSP header.
+
 当前仓库已可通过生产构建。构建阶段会提示较大的客户端 chunk，这是 MapLibre 与图片处理依赖带来的体积警告，不会阻止产物生成。
