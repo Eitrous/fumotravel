@@ -35,6 +35,7 @@ let mobileDrawerPointerId: number | null = null
 let mobileDrawerPointerStartY = 0
 let mobileDrawerPointerStartState: MobileDrawerState = 'peek'
 let mobileDrawerWasDragged = false
+let mobileDrawerStartedFromToolbar = false
 let suppressNextMobileDrawerClick = false
 let mobileDrawerClickSuppressionTimer: ReturnType<typeof setTimeout> | null = null
 let workbenchNoticeTimer: ReturnType<typeof setTimeout> | null = null
@@ -134,6 +135,7 @@ const resetMobileDrawerDrag = () => {
   mobileDrawerPointerId = null
   mobileDrawerPointerStartState = 'peek'
   mobileDrawerWasDragged = false
+  mobileDrawerStartedFromToolbar = false
 }
 
 const closeWorkbenchNotice = () => {
@@ -301,12 +303,16 @@ const isInteractiveDrawerTarget = (target: EventTarget | null) => {
   ))
 }
 
+const isToolbarDrawerTarget = (target: EventTarget | null) => {
+  return target instanceof Element && Boolean(target.closest('.workbench-tools'))
+}
+
 const shouldStartMobileDrawerDrag = (event: PointerEvent) => {
   if (!isMobile.value || (event.pointerType === 'mouse' && event.button !== 0)) {
     return false
   }
 
-  if (isInteractiveDrawerTarget(event.target)) {
+  if (isInteractiveDrawerTarget(event.target) && !isToolbarDrawerTarget(event.target)) {
     return false
   }
 
@@ -351,6 +357,7 @@ function handleMobileDrawerPointerDown(event: PointerEvent) {
   mobileDrawerPointerStartY = event.clientY
   mobileDrawerPointerStartState = mobileDrawerState.value
   mobileDrawerWasDragged = false
+  mobileDrawerStartedFromToolbar = isToolbarDrawerTarget(event.target)
   mobileDrawerDragging.value = true
   mobileDrawerDragOffset.value = 0
   ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
@@ -363,6 +370,11 @@ function handleMobileDrawerPointerMove(event: PointerEvent) {
 
   const deltaY = event.clientY - mobileDrawerPointerStartY
   mobileDrawerWasDragged = mobileDrawerWasDragged || Math.abs(deltaY) > 6
+
+  if (mobileDrawerStartedFromToolbar && mobileDrawerWasDragged) {
+    event.preventDefault()
+  }
+
   mobileDrawerDragOffset.value = clampMobileDrawerDragOffset(deltaY)
 }
 
