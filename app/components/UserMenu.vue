@@ -8,6 +8,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   login: []
+  menuOpen: []
   signOut: []
 }>()
 
@@ -26,7 +27,13 @@ const toggleMenu = () => {
     return
   }
 
-  isOpen.value = !isOpen.value
+  const nextOpen = !isOpen.value
+
+  if (nextOpen) {
+    emit('menuOpen')
+  }
+
+  isOpen.value = nextOpen
 }
 
 const handleLogin = () => {

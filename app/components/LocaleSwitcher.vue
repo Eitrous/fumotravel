@@ -1,5 +1,8 @@
 <script setup lang="ts">
 const { locale, locales, setLocale, t } = useI18n()
+const emit = defineEmits<{
+  menuOpen: []
+}>()
 
 const rootEl = ref<HTMLElement | null>(null)
 const isOpen = ref(false)
@@ -19,7 +22,13 @@ const closeMenu = () => {
 }
 
 const toggleMenu = () => {
-  isOpen.value = !isOpen.value
+  const nextOpen = !isOpen.value
+
+  if (nextOpen) {
+    emit('menuOpen')
+  }
+
+  isOpen.value = nextOpen
 }
 
 const updateLocale = async (value: string) => {

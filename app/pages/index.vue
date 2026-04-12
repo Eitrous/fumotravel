@@ -268,6 +268,12 @@ function revealMobileDrawer() {
     : 'workbench'
 }
 
+function revealMobileDrawerForMenu() {
+  if (mobileDrawerPeeking.value) {
+    revealMobileDrawer()
+  }
+}
+
 async function handleSignOut() {
   await auth.signOut()
   await navigateTo('/')
@@ -497,6 +503,10 @@ onBeforeUnmount(() => {
         @pointerup="handleMobileDrawerPointerUp"
         @pointercancel="handleMobileDrawerPointerCancel"
       >
+        <div class="workbench-drawer-handle" aria-hidden="true">
+          <span />
+        </div>
+
         <div class="workbench-sidebar__chrome">
           <div class="workbench-sidebar__header" :class="{ 'is-detail': isDetailPanel }">
             <button
@@ -553,7 +563,7 @@ onBeforeUnmount(() => {
                 <span class="sr-only">{{ isDark ? t('common.toggleThemeToLight') : t('common.toggleThemeToDark') }}</span>
               </button>
 
-              <LocaleSwitcher />
+              <LocaleSwitcher @menu-open="revealMobileDrawerForMenu" />
 
               <UserMenu
                 v-if="clientToolbarReady && auth.ready.value"
@@ -562,6 +572,7 @@ onBeforeUnmount(() => {
                 :label="viewerHandle"
                 :username="auth.viewer.value?.profile.username"
                 @login="openLoginPanel()"
+                @menu-open="revealMobileDrawerForMenu"
                 @sign-out="handleSignOut"
               />
 
