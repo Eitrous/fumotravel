@@ -1581,6 +1581,7 @@ html[data-theme="dark"] .workbench-icon-button--primary:focus-visible {
 }
 
 .workbench-panel--home-quote {
+  position: relative;
   min-height: 100%;
   align-content: center;
   justify-items: center;
@@ -1630,6 +1631,9 @@ html[data-theme="dark"] .workbench-icon-button--primary:focus-visible {
 }
 
 .workbench-home-quote__blog-link {
+  position: absolute;
+  left: 0;
+  bottom: 0;
   display: inline-grid;
   place-items: center;
   width: 2.65rem;
