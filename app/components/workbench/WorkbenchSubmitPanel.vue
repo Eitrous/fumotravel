@@ -28,6 +28,9 @@ const props = withDefaults(defineProps<{
   mode: 'create',
   postId: null
 })
+const emit = defineEmits<{
+  submitted: [message: string]
+}>()
 
 const auth = useAuthState()
 const { t } = useI18n()
@@ -620,12 +623,14 @@ const submitPost = async () => {
       }
       await loadEditablePost()
       successMessage.value = nextSuccessMessage
+      emit('submitted', nextSuccessMessage)
     } else {
       if (viewerUsername) {
         invalidateUserPage(viewerUsername)
       }
       successMessage.value = nextSuccessMessage
       resetForm()
+      emit('submitted', nextSuccessMessage)
     }
   } catch (error) {
     if (uploadedPaths.length) {
@@ -660,7 +665,6 @@ onBeforeUnmount(() => {
   <section class="workbench-panel workbench-panel--submit">
     <span class="eyebrow">{{ isEditMode ? t('edit.eyebrow') : t('submit.eyebrow') }}</span>
     <h2 class="workbench-panel__title workbench-panel__title--poster">{{ isEditMode ? t('edit.title') : t('submit.title') }}</h2>
-    <p class="workbench-panel__copy workbench-panel__copy--poster">{{ isEditMode ? t('edit.description') : t('submit.description') }}</p>
     <p v-if="loadingEditable" class="status-inline">{{ t('edit.loading') }}</p>
 
     <section class="workbench-stack-section">

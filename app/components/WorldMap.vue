@@ -24,6 +24,8 @@ const { isDark } = useTheme()
 const config = useRuntimeConfig()
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<MapLibreMap | null>(null)
+const mapLoadingRequests = ref(0)
+const isMapLoading = computed(() => mapLoadingRequests.value > 0)
 const taiwanProvinceLabel = computed(() => t('map.taiwanProvinceLabel'))
 const collection = shallowRef<PublicMapCollection>({
   type: 'FeatureCollection',
@@ -31,6 +33,14 @@ const collection = shallowRef<PublicMapCollection>({
 })
 
 let maplibregl: typeof import('maplibre-gl') | null = null
+
+const startMapLoading = () => {
+  mapLoadingRequests.value += 1
+}
+
+const finishMapLoading = () => {
+  mapLoadingRequests.value = Math.max(0, mapLoadingRequests.value - 1)
+}
 
 const normalizeProperties = (raw: Record<string, unknown>): PublicMapFeatureProperties => {
   return {
@@ -91,6 +101,7 @@ const refreshSource = async () => {
     return
   }
 
+  startMapLoading()
   try {
     const geojson = await fetchGeoJson()
     const nextCollection = geojson || emptyCollection
@@ -102,6 +113,8 @@ const refreshSource = async () => {
     syncSelectionSource()
   } catch {
     // Keep map interactive even if a fetch attempt fails.
+  } finally {
+    finishMapLoading()
   }
 }
 
@@ -223,81 +236,91 @@ onMounted(async () => {
     return
   }
 
-  maplibregl = await import('maplibre-gl')
-  const style = isDark.value ? MAP_DARK_STYLE_URL : (config.public.mapStyleUrl || MAP_DEFAULT_STYLE_URL)
+  startMapLoading()
+  try {
+    maplibregl = await import('maplibre-gl')
+    const style = isDark.value ? MAP_DARK_STYLE_URL : (config.public.mapStyleUrl || MAP_DEFAULT_STYLE_URL)
 
-  mapRef.value = new maplibregl.Map({
-    container: mapEl.value,
-    style,
-    center: MAP_DEFAULT_CENTER,
-    zoom: MAP_DEFAULT_ZOOM
-  })
+    mapRef.value = new maplibregl.Map({
+      container: mapEl.value,
+      style,
+      center: MAP_DEFAULT_CENTER,
+      zoom: MAP_DEFAULT_ZOOM
+    })
+  } catch {
+    finishMapLoading()
+    return
+  }
 
   mapRef.value.on('load', async () => {
-    const geojson = await fetchGeoJson()
-    const nextCollection = geojson || emptyCollection
-    collection.value = nextCollection
+    try {
+      const geojson = await fetchGeoJson()
+      const nextCollection = geojson || emptyCollection
+      collection.value = nextCollection
 
-    applyPoliticalLabels()
-    setupMapLayers()
+      applyPoliticalLabels()
+      setupMapLayers()
 
-    mapRef.value?.on('mouseenter', 'clusters', () => {
-      mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
-    })
-
-    mapRef.value?.on('mouseleave', 'clusters', () => {
-      mapRef.value?.getCanvas().style.setProperty('cursor', '')
-    })
-
-    mapRef.value?.on('mouseenter', 'unclustered-point', () => {
-      mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
-    })
-
-    mapRef.value?.on('mouseleave', 'unclustered-point', () => {
-      mapRef.value?.getCanvas().style.setProperty('cursor', '')
-    })
-
-    mapRef.value?.on('click', 'clusters', async (event) => {
-      const features = mapRef.value?.queryRenderedFeatures(event.point, {
-        layers: ['clusters']
+      mapRef.value?.on('mouseenter', 'clusters', () => {
+        mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
       })
-      const cluster = features?.[0]
-      const clusterId = cluster?.properties?.cluster_id
 
-      if (
-        clusterId == null
-        || !mapRef.value
-        || !cluster
-        || cluster.geometry.type !== 'Point'
-      ) {
-        return
-      }
-
-      const source = mapRef.value.getSource('posts') as GeoJSONSource
-      const zoom = await source.getClusterExpansionZoom(clusterId)
-      const coordinates = (cluster.geometry as GeoJSON.Point).coordinates as [number, number]
-
-      mapRef.value.easeTo({
-        center: coordinates,
-        zoom
+      mapRef.value?.on('mouseleave', 'clusters', () => {
+        mapRef.value?.getCanvas().style.setProperty('cursor', '')
       })
-    })
 
-    mapRef.value?.on('click', 'unclustered-point', (event) => {
-      const feature = event.features?.[0]
-      if (!feature?.properties) {
-        return
-      }
+      mapRef.value?.on('mouseenter', 'unclustered-point', () => {
+        mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
+      })
 
-      const normalizedProps = normalizeProperties(feature.properties)
-      emit('select-post', normalizedProps.id)
-    })
+      mapRef.value?.on('mouseleave', 'unclustered-point', () => {
+        mapRef.value?.getCanvas().style.setProperty('cursor', '')
+      })
 
-    mapRef.value?.on('moveend', () => {
-      void refreshSource()
-    })
+      mapRef.value?.on('click', 'clusters', async (event) => {
+        const features = mapRef.value?.queryRenderedFeatures(event.point, {
+          layers: ['clusters']
+        })
+        const cluster = features?.[0]
+        const clusterId = cluster?.properties?.cluster_id
 
-    syncSelectionSource()
+        if (
+          clusterId == null
+          || !mapRef.value
+          || !cluster
+          || cluster.geometry.type !== 'Point'
+        ) {
+          return
+        }
+
+        const source = mapRef.value.getSource('posts') as GeoJSONSource
+        const zoom = await source.getClusterExpansionZoom(clusterId)
+        const coordinates = (cluster.geometry as GeoJSON.Point).coordinates as [number, number]
+
+        mapRef.value.easeTo({
+          center: coordinates,
+          zoom
+        })
+      })
+
+      mapRef.value?.on('click', 'unclustered-point', (event) => {
+        const feature = event.features?.[0]
+        if (!feature?.properties) {
+          return
+        }
+
+        const normalizedProps = normalizeProperties(feature.properties)
+        emit('select-post', normalizedProps.id)
+      })
+
+      mapRef.value?.on('moveend', () => {
+        void refreshSource()
+      })
+
+      syncSelectionSource()
+    } finally {
+      finishMapLoading()
+    }
   })
 })
 
@@ -324,5 +347,17 @@ onBeforeUnmount(() => {
 <template>
   <div class="map-stage">
     <div ref="mapEl" class="map-canvas" />
+    <Transition name="map-loading-indicator">
+      <div
+        v-if="isMapLoading"
+        class="map-loading-indicator"
+        role="status"
+        aria-live="polite"
+        :aria-label="t('map.loading')"
+      >
+        <i class="fa-solid fa-spinner fa-spin" aria-hidden="true" />
+        <span class="sr-only">{{ t('map.loading') }}</span>
+      </div>
+    </Transition>
   </div>
 </template>

@@ -2,6 +2,10 @@
 import type { WorkbenchPanel } from '~~/shared/fumo'
 
 type MobileDrawerState = 'peek' | 'workbench' | 'detail'
+type WorkbenchNotice = {
+  message: string
+  icon: string
+}
 
 const { t } = useI18n()
 const { isDark, toggleTheme } = useTheme()
@@ -23,6 +27,8 @@ const mobileDrawerDragOffset = ref(0)
 const mobileDrawerDragging = ref(false)
 const mobileDrawerPeeking = computed(() => isMobile.value && mobileDrawerState.value === 'peek')
 const clientToolbarReady = ref(false)
+const workbenchNotice = ref<WorkbenchNotice | null>(null)
+const workbenchNoticeOpen = computed(() => Boolean(workbenchNotice.value))
 
 let viewportQuery: MediaQueryList | null = null
 let mobileDrawerPointerId: number | null = null
@@ -31,6 +37,7 @@ let mobileDrawerPointerStartState: MobileDrawerState = 'peek'
 let mobileDrawerWasDragged = false
 let suppressNextMobileDrawerClick = false
 let mobileDrawerClickSuppressionTimer: ReturnType<typeof setTimeout> | null = null
+let workbenchNoticeTimer: ReturnType<typeof setTimeout> | null = null
 
 const workbenchState = computed(() => resolveWorkbenchState(route.query))
 const currentPanel = computed(() => workbenchState.value.panel)
@@ -39,6 +46,7 @@ const selectedUsername = computed(() => workbenchState.value.username)
 const nextPath = computed(() => workbenchState.value.nextPath)
 const submitPath = computed(() => router.resolve(createWorkbenchLocation('submit')).fullPath)
 const isDetailPanel = computed(() => currentPanel.value === 'post')
+const showHomeBrand = computed(() => currentPanel.value === 'info')
 const panelKey = computed(() => {
   return (currentPanel.value === 'post' || currentPanel.value === 'edit')
     ? `${currentPanel.value}-${selectedPostId.value}`
@@ -137,6 +145,53 @@ const resetMobileDrawerDrag = () => {
   mobileDrawerWasDragged = false
 }
 
+const closeWorkbenchNotice = () => {
+  if (workbenchNoticeTimer) {
+    clearTimeout(workbenchNoticeTimer)
+    workbenchNoticeTimer = null
+  }
+
+  workbenchNotice.value = null
+}
+
+const openWorkbenchNotice = (notice: WorkbenchNotice) => {
+  if (!notice.message) {
+    return
+  }
+
+  closeWorkbenchNotice()
+  workbenchNotice.value = notice
+
+  if (import.meta.client) {
+    workbenchNoticeTimer = setTimeout(() => {
+      closeWorkbenchNotice()
+    }, 3200)
+  }
+}
+
+const handleWorkbenchNoticeKeydown = (event: KeyboardEvent) => {
+  if (!workbenchNoticeOpen.value || event.key !== 'Escape') {
+    return
+  }
+
+  event.preventDefault()
+  closeWorkbenchNotice()
+}
+
+const handleSubmissionSuccess = (message: string) => {
+  openWorkbenchNotice({
+    message,
+    icon: 'fa-circle-check'
+  })
+}
+
+const handleAuthNotice = (message: string) => {
+  openWorkbenchNotice({
+    message,
+    icon: 'fa-envelope'
+  })
+}
+
 const syncViewportMode = () => {
   isMobile.value = viewportQuery?.matches ?? false
 
@@ -171,7 +226,7 @@ async function openInfoPanel() {
   await openPanel('info')
 }
 
-async function openLoginPanel(target = submitPath.value) {
+async function openLoginPanel(target = '/') {
   await openPanel('login', {
     next: target
   })
@@ -181,7 +236,10 @@ async function openSubmitPanel() {
   await auth.init()
 
   if (!auth.user.value) {
-    await openLoginPanel(submitPath.value)
+    openWorkbenchNotice({
+      message: t('auth.loginRequiredToSubmit'),
+      icon: 'fa-right-to-bracket'
+    })
     return
   }
 
@@ -224,6 +282,10 @@ async function handleSignOut() {
   await navigateTo('/')
   mobileDrawerState.value = 'peek'
   resetMobileDrawerDrag()
+  openWorkbenchNotice({
+    message: t('auth.signedOut'),
+    icon: 'fa-right-from-bracket'
+  })
 }
 
 async function triggerPrimaryAction() {
@@ -388,6 +450,19 @@ watch(
   { immediate: true }
 )
 
+watch(workbenchNoticeOpen, (isOpen) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (isOpen) {
+    window.addEventListener('keydown', handleWorkbenchNoticeKeydown)
+    return
+  }
+
+  window.removeEventListener('keydown', handleWorkbenchNoticeKeydown)
+})
+
 onMounted(() => {
   clientToolbarReady.value = true
   viewportQuery = window.matchMedia('(max-width: 980px)')
@@ -401,9 +476,16 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   viewportQuery?.removeEventListener('change', syncViewportMode)
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', handleWorkbenchNoticeKeydown)
+  }
 
   if (mobileDrawerClickSuppressionTimer) {
     clearTimeout(mobileDrawerClickSuppressionTimer)
+  }
+
+  if (workbenchNoticeTimer) {
+    clearTimeout(workbenchNoticeTimer)
   }
 })
 </script>
@@ -426,8 +508,20 @@ onBeforeUnmount(() => {
       >
         <div class="workbench-sidebar__chrome">
           <div class="workbench-sidebar__header" :class="{ 'is-detail': isDetailPanel }">
+            <button
+              v-if="leadingAction"
+              class="workbench-icon-button workbench-sidebar__back-button"
+              type="button"
+              :title="leadingAction.label"
+              :aria-label="leadingAction.label"
+              @click="leadingAction.run"
+            >
+              <i class="button-icon fa-solid" :class="leadingAction.icon" aria-hidden="true" />
+              <span class="sr-only">{{ leadingAction.label }}</span>
+            </button>
+
             <div
-              v-if="!isDetailPanel"
+              v-if="showHomeBrand"
               class="workbench-brand"
               :role="mobileDrawerPeeking ? 'button' : undefined"
               :tabindex="mobileDrawerPeeking ? 0 : undefined"
@@ -439,7 +533,7 @@ onBeforeUnmount(() => {
               <span class="workbench-brand__word workbench-brand__word--bottom">{{ brandWords.bottom }}</span>
             </div>
             <button
-              v-else
+              v-else-if="isDetailPanel"
               class="workbench-brand workbench-brand--exit"
               type="button"
               :title="t('post.exitDetail')"
@@ -454,18 +548,6 @@ onBeforeUnmount(() => {
               class="workbench-tools"
             >
               <button
-                v-if="leadingAction"
-                class="workbench-icon-button"
-                type="button"
-                :title="leadingAction.label"
-                :aria-label="leadingAction.label"
-                @click="leadingAction.run"
-              >
-                <i class="button-icon fa-solid" :class="leadingAction.icon" aria-hidden="true" />
-                <span class="sr-only">{{ leadingAction.label }}</span>
-              </button>
-
-              <button
                 class="workbench-icon-button"
                 type="button"
                 :title="isDark ? t('common.toggleThemeToLight') : t('common.toggleThemeToDark')"
@@ -478,6 +560,16 @@ onBeforeUnmount(() => {
 
               <LocaleSwitcher />
 
+              <UserMenu
+                v-if="clientToolbarReady && auth.ready.value"
+                :ready="auth.ready.value"
+                :signed-in="Boolean(auth.viewer.value)"
+                :label="viewerHandle"
+                :username="auth.viewer.value?.profile.username"
+                @login="openLoginPanel()"
+                @sign-out="handleSignOut"
+              />
+
               <NuxtLink
                 v-if="clientToolbarReady && auth.ready.value && auth.viewer.value && auth.isAdmin.value"
                 class="workbench-icon-button"
@@ -488,30 +580,6 @@ onBeforeUnmount(() => {
                 <i class="button-icon fa-solid fa-shield-halved" aria-hidden="true" />
                 <span class="sr-only">{{ t('common.review') }}</span>
               </NuxtLink>
-
-              <button
-                v-if="clientToolbarReady && auth.ready.value && auth.viewer.value"
-                class="workbench-icon-button"
-                type="button"
-                :title="t('common.signOut')"
-                :aria-label="t('common.signOut')"
-                @click="handleSignOut"
-              >
-                <i class="button-icon fa-solid fa-right-from-bracket" aria-hidden="true" />
-                <span class="sr-only">{{ t('common.signOut') }}</span>
-              </button>
-
-              <button
-                v-else-if="clientToolbarReady && auth.ready.value && currentPanel !== 'login'"
-                class="workbench-icon-button"
-                type="button"
-                :title="t('common.login')"
-                :aria-label="t('common.login')"
-                @click="openLoginPanel()"
-              >
-                <i class="button-icon fa-solid fa-right-to-bracket" aria-hidden="true" />
-                <span class="sr-only">{{ t('common.login') }}</span>
-              </button>
 
               <button
                 class="workbench-icon-button workbench-icon-button--primary"
@@ -558,6 +626,7 @@ onBeforeUnmount(() => {
             <WorkbenchLoginPanel
               v-else-if="currentPanel === 'login'"
               :next-path="nextPath"
+              @notice="handleAuthNotice"
             />
 
             <WorkbenchOnboardingPanel
@@ -565,12 +634,16 @@ onBeforeUnmount(() => {
               :next-path="nextPath"
             />
 
-            <WorkbenchSubmitPanel v-else-if="currentPanel === 'submit'" />
+            <WorkbenchSubmitPanel
+              v-else-if="currentPanel === 'submit'"
+              @submitted="handleSubmissionSuccess"
+            />
 
             <WorkbenchSubmitPanel
               v-else-if="currentPanel === 'edit' && selectedPostId"
               mode="edit"
               :post-id="selectedPostId"
+              @submitted="handleSubmissionSuccess"
             />
 
             <WorkbenchUserPanel
@@ -595,5 +668,33 @@ onBeforeUnmount(() => {
         @select-post="handleMarkerSelection"
       />
     </section>
+
+    <Transition name="workbench-notice">
+      <div
+        v-if="workbenchNotice"
+        class="workbench-like-dialog workbench-notice"
+        role="status"
+        aria-live="polite"
+        @click.self="closeWorkbenchNotice"
+      >
+        <div class="workbench-like-dialog__panel workbench-notice__panel">
+          <i
+            class="workbench-like-dialog__icon fa-solid"
+            :class="workbenchNotice.icon"
+            aria-hidden="true"
+          />
+          <p>{{ workbenchNotice.message }}</p>
+          <button
+            class="workbench-icon-button workbench-like-dialog__close"
+            type="button"
+            :aria-label="t('common.close')"
+            @click="closeWorkbenchNotice"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true" />
+            <span class="sr-only">{{ t('common.close') }}</span>
+          </button>
+        </div>
+      </div>
+    </Transition>
   </main>
 </template>

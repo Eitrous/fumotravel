@@ -92,20 +92,22 @@
     "magicLinkSuccess": "ログインリンクをメールに送りました。メール内のリンクを開くと、このサイトに戻って続きから操作できます。",
     "registrationNeedsConfirmation": "登録を受け付けました。メールの確認リンクを開いてからログインしてください。",
     "success": "ログインリンクをメールに送りました。メール内のリンクを開くと、このサイトに戻って続きから操作できます。",
+    "loginRequiredToSubmit": "投稿するにはログインしてください。",
+    "signedOut": "ログアウトしました。",
     "modes": {
       "password": {
-        "title": "パスワードでログイン。",
-        "description": "登録済みのメールアドレスとパスワードを入力してください。",
+        "title": "パスワードでログイン",
+        "description": "登録済みのメールアドレスとパスワードを入力してください",
         "submit": "ログイン"
       },
       "link": {
-        "title": "メールリンクでログイン。",
-        "description": "登録済みアカウントはメールリンクでも入れます。",
+        "title": "メールリンクでログイン",
+        "description": "登録済みアカウントはメールリンクでも入れます",
         "submit": "ログインリンクを送信"
       },
       "register": {
-        "title": "登録してパスワードを設定。",
-        "description": "新しいアカウントには先にパスワードが必要です。",
+        "title": "登録してパスワードを設定",
+        "description": "新しいアカウントには先にパスワードが必要です",
         "submit": "登録"
       }
     },
@@ -121,8 +123,8 @@
   },
   "onboarding": {
     "eyebrow": "作者 ID",
-    "title": "公開投稿に表示する作者 ID を設定する。",
-    "description": "この ID は公開投稿ごとに表示されます。",
+    "title": "公開投稿に表示する作者 ID を設定する",
+    "description": "この ID は公開投稿ごとに表示されます",
     "label": "作者 ID",
     "hint": "例: `reimu_tabi`、`alice_fumo`、`world_trip_01`。",
     "submit": "設定を保存",

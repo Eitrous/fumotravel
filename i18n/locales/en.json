@@ -92,20 +92,22 @@
     "magicLinkSuccess": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
     "registrationNeedsConfirmation": "Registration is submitted. Open the confirmation link in your email before logging in.",
     "success": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
+    "loginRequiredToSubmit": "Log in before submitting.",
+    "signedOut": "Signed out.",
     "modes": {
       "password": {
-        "title": "Log in with password.",
-        "description": "Use your registered email and password.",
+        "title": "Log in with password",
+        "description": "Use your registered email and password",
         "submit": "Log in"
       },
       "link": {
-        "title": "Log in with an email link.",
-        "description": "Registered accounts can enter through an email link.",
+        "title": "Log in with an email link",
+        "description": "Registered accounts can enter through an email link",
         "submit": "Send login link"
       },
       "register": {
-        "title": "Register and set a password.",
-        "description": "New accounts need a password first.",
+        "title": "Register",
+        "description": "",
         "submit": "Register"
       }
     },

@@ -8,6 +8,9 @@ const props = withDefaults(defineProps<{
 }>(), {
   nextPath: null
 })
+const emit = defineEmits<{
+  notice: [message: string]
+}>()
 
 const auth = useAuthState()
 const { t } = useI18n()
@@ -19,7 +22,7 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
-const fallbackNextPath = computed(() => props.nextPath || '/?panel=submit')
+const fallbackNextPath = computed(() => props.nextPath || '/')
 const requiresPassword = computed(() => mode.value !== 'link')
 const requiresConfirmPassword = computed(() => mode.value === 'register')
 
@@ -59,6 +62,10 @@ const primaryActionIcon = computed(() => {
 const redirectAfterLogin = async () => {
   if (!auth.ready.value || !auth.user.value) {
     return
+  }
+
+  if (!auth.viewer.value) {
+    await auth.refreshViewer()
   }
 
   if (!auth.hasUsername.value) {
@@ -130,7 +137,7 @@ const submitAuth = async () => {
         return
       }
 
-      successMessage.value = t('auth.registrationNeedsConfirmation')
+      emit('notice', t('auth.registrationNeedsConfirmation'))
       return
     }
 

@@ -11,7 +11,7 @@ const username = ref('')
 const saving = ref(false)
 const errorMessage = ref('')
 
-const fallbackNextPath = computed(() => props.nextPath || '/?panel=submit')
+const fallbackNextPath = computed(() => props.nextPath || '/')
 
 const suggestUsername = () => {
   const email = auth.viewer.value?.email || ''

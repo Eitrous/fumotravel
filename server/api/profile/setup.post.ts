@@ -2,6 +2,7 @@ import { readBody } from 'h3'
 import { USERNAME_PATTERN } from '~~/shared/fumo'
 import {
   createPublicServerClient,
+  ensureProfile,
   requireAuthenticatedUser
 } from '~~/server/utils/supabase'
 
@@ -19,14 +20,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const supabase = createPublicServerClient(event, accessToken)
+  await ensureProfile(event, user, accessToken)
+
   const { data, error } = await supabase
     .from('profiles')
-    .upsert({
-      id: user.id,
+    .update({
       username
-    }, {
-      onConflict: 'id'
     })
+    .eq('id', user.id)
     .select('id, username, avatar_url, role, created_at, updated_at')
     .single()
 
