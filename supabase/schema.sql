@@ -192,6 +192,14 @@ alter table public.post_revisions enable row level security;
 alter table public.post_revision_photos enable row level security;
 alter table public.post_likes enable row level security;
 
+revoke insert, update on public.profiles from anon, authenticated;
+revoke insert (id, username, avatar_url, role, created_at, updated_at)
+  on public.profiles from anon, authenticated;
+revoke update (id, username, avatar_url, role, created_at, updated_at)
+  on public.profiles from anon, authenticated;
+grant insert (id, username, avatar_url) on public.profiles to authenticated;
+grant update (username, avatar_url) on public.profiles to authenticated;
+
 drop policy if exists "profiles_select_self" on public.profiles;
 create policy "profiles_select_self"
 on public.profiles
@@ -204,7 +212,7 @@ create policy "profiles_insert_self"
 on public.profiles
 for insert
 to authenticated
-with check (auth.uid() = id);
+with check (auth.uid() = id and role = 'user');
 
 drop policy if exists "profiles_update_self" on public.profiles;
 create policy "profiles_update_self"
@@ -226,7 +234,7 @@ create policy "posts_insert_self"
 on public.posts
 for insert
 to authenticated
-with check (auth.uid() = user_id);
+with check (auth.uid() = user_id and status = 'pending');
 
 drop policy if exists "posts_update_self" on public.posts;
 create policy "posts_update_self"
@@ -277,7 +285,7 @@ create policy "post_revisions_insert_self"
 on public.post_revisions
 for insert
 to authenticated
-with check (auth.uid() = user_id);
+with check (auth.uid() = user_id and status = 'pending');
 
 drop policy if exists "post_revisions_update_self" on public.post_revisions;
 create policy "post_revisions_update_self"
