@@ -25,3 +25,5 @@ logs
 .env.*
 !.env.example
 tofix.md
+.codex/
+public/icon-dark.png
