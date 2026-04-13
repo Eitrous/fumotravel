@@ -154,6 +154,20 @@ const handleEnter = () => {
   void submitAuth()
 }
 
+const submitGitHub = async () => {
+  errorMessage.value = ''
+  successMessage.value = ''
+  submitting.value = true
+
+  try {
+    await auth.signInWithGitHub(fallbackNextPath.value)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : t('auth.errors.githubFailed')
+  } finally {
+    submitting.value = false
+  }
+}
+
 const canSubmit = computed(() => {
   return Boolean(email.value.trim()) && !submitting.value
 })
@@ -190,6 +204,18 @@ useWorkbenchToolbarAction(computed(() => ({
         <span class="sr-only">{{ option.label }}</span>
       </button>
     </div>
+
+    <button
+      class="auth-oauth-button"
+      type="button"
+      :disabled="submitting"
+      :title="t('auth.githubLogin')"
+      :aria-label="t('auth.githubLogin')"
+      @click="submitGitHub"
+    >
+      <i class="fa-brands fa-github" aria-hidden="true" />
+      <span>{{ t('auth.githubLogin') }}</span>
+    </button>
 
     <label class="field-label">
       <span>{{ t('auth.emailLabel') }}</span>

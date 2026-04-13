@@ -13,6 +13,17 @@ export const useAuthState = () => {
   const hasUsername = computed(() => Boolean(viewer.value?.profile.username))
   const isAdmin = computed(() => viewer.value?.profile.role === 'admin')
 
+  const createLoginRedirectTarget = (nextPath?: string) => {
+    const redirectTarget = new URL('/', window.location.origin)
+    redirectTarget.searchParams.set('panel', 'login')
+
+    if (nextPath) {
+      redirectTarget.searchParams.set('next', nextPath)
+    }
+
+    return redirectTarget.toString()
+  }
+
   const applySession = async (nextSession: Session | null) => {
     session.value = nextSession
     user.value = nextSession?.user ?? null
@@ -104,24 +115,33 @@ export const useAuthState = () => {
 
   const sendMagicLink = async (email: string, nextPath?: string) => {
     const supabase = useSupabaseBrowserClient()
-    const redirectTarget = new URL('/', window.location.origin)
-    redirectTarget.searchParams.set('panel', 'login')
-
-    if (nextPath) {
-      redirectTarget.searchParams.set('next', nextPath)
-    }
-
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo: redirectTarget.toString()
+        emailRedirectTo: createLoginRedirectTarget(nextPath)
       }
     })
 
     if (error) {
       throw error
     }
+  }
+
+  const signInWithGitHub = async (nextPath?: string) => {
+    const supabase = useSupabaseBrowserClient()
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: createLoginRedirectTarget(nextPath)
+      }
+    })
+
+    if (error) {
+      throw error
+    }
+
+    return data
   }
 
   const signOut = async () => {
@@ -154,6 +174,7 @@ export const useAuthState = () => {
     signInWithPassword,
     signUpWithPassword,
     sendMagicLink,
+    signInWithGitHub,
     signOut
   }
 }

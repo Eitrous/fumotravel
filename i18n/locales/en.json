@@ -74,7 +74,7 @@
   "auth": {
     "eyebrow": "Login / Register",
     "title": "Log in to submit.",
-    "description": "Use a password or an email link.",
+    "description": "Use a password, GitHub, or an email link.",
     "emailLabel": "Email address",
     "passwordLabel": "Password",
     "confirmPasswordLabel": "Confirm password",
@@ -82,6 +82,7 @@
     "confirmPasswordPlaceholder": "Enter the password again",
     "passwordLogin": "Password login",
     "linkLogin": "Email link login",
+    "githubLogin": "Continue with GitHub",
     "register": "Register",
     "modeLabel": "Login method",
     "sendLink": "Send login link",
@@ -118,6 +119,7 @@
       "passwordFailed": "Password login failed.",
       "linkFailed": "Failed to send the login link.",
       "registerFailed": "Registration failed.",
+      "githubFailed": "GitHub login failed.",
       "sendFailed": "Failed to send the login link."
     }
   },

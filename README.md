@@ -66,6 +66,20 @@ where username = 'your_admin_id';
 npm run dev
 ```
 
+## GitHub OAuth
+
+To enable GitHub login in Supabase:
+
+1. Go to Supabase Dashboard -> Authentication -> Providers -> GitHub, then enable GitHub.
+2. Create or reuse a GitHub OAuth App, and fill its Client ID / Client Secret into Supabase.
+3. In the GitHub OAuth App settings, set the callback URL to the URL required by Supabase.
+4. In Supabase Authentication settings, make sure Site URL and Redirect URLs include:
+   - your local dev URL
+   - your Vercel production / preview domain
+   - the in-site login return URL used by this app, such as `https://your-site/?panel=login`
+
+The app uses Supabase browser OAuth redirect flow and returns to the existing login panel. Users without a username will continue into onboarding after GitHub sign-in.
+
 ## 重要约定
 
 - `fumo` bucket 必须保持私有

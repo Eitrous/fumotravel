@@ -74,7 +74,7 @@
   "auth": {
     "eyebrow": "ログイン / 登録",
     "title": "投稿するにはログイン。",
-    "description": "パスワードまたはメールリンクでログインできます。",
+    "description": "パスワード、GitHub、またはメールリンクでログインできます。",
     "emailLabel": "メールアドレス",
     "passwordLabel": "パスワード",
     "confirmPasswordLabel": "パスワード確認",
@@ -82,6 +82,7 @@
     "confirmPasswordPlaceholder": "もう一度入力",
     "passwordLogin": "パスワードログイン",
     "linkLogin": "メールリンクログイン",
+    "githubLogin": "GitHub でログイン",
     "register": "登録",
     "modeLabel": "ログイン方法",
     "sendLink": "ログインリンクを送信",
@@ -118,6 +119,7 @@
       "passwordFailed": "パスワードログインに失敗しました。",
       "linkFailed": "ログインリンクの送信に失敗しました。",
       "registerFailed": "登録に失敗しました。",
+      "githubFailed": "GitHub ログインに失敗しました。",
       "sendFailed": "ログインリンクの送信に失敗しました。"
     }
   },

@@ -1146,6 +1146,59 @@ html[data-theme="dark"] .auth-mode-switcher .workbench-icon-button.is-active {
   background: rgba(88, 199, 143, 0.14);
 }
 
+.auth-oauth-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(29, 23, 18, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.52);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 180ms var(--motion-smooth),
+    background 180ms var(--motion-smooth),
+    color 180ms var(--motion-smooth),
+    transform 180ms var(--motion-smooth);
+}
+
+.auth-oauth-button:hover,
+.auth-oauth-button:focus-visible {
+  border-color: rgba(22, 146, 95, 0.32);
+  background: rgba(22, 146, 95, 0.08);
+  color: #16925f;
+  outline: 0;
+  transform: translateY(-1px);
+}
+
+.auth-oauth-button:disabled {
+  opacity: 0.58;
+  cursor: wait;
+  transform: none;
+}
+
+.auth-oauth-button i {
+  font-size: 1rem;
+}
+
+html[data-theme="dark"] .auth-oauth-button {
+  border-color: rgba(136, 154, 166, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] .auth-oauth-button:hover,
+html[data-theme="dark"] .auth-oauth-button:focus-visible {
+  border-color: rgba(88, 199, 143, 0.38);
+  background: rgba(88, 199, 143, 0.1);
+  color: #58c78f;
+}
+
 .workbench-panel__facts {
   display: grid;
   gap: 0;
