@@ -72,9 +72,9 @@
     "taiwanProvinceLabel": "TAIWAN PROVINCE"
   },
   "auth": {
-    "eyebrow": "登录 / 注册",
-    "title": "登录后即可投稿。",
-    "description": "可使用密码、GitHub 或邮箱链接登录。",
+    "eyebrow": "",
+    "title": "登录 / 注册",
+    "description": "",
     "emailLabel": "邮箱地址",
     "passwordLabel": "密码",
     "confirmPasswordLabel": "确认密码",
@@ -83,7 +83,9 @@
     "passwordLogin": "密码登录",
     "linkLogin": "邮箱链接登录",
     "githubLogin": "GitHub 登录",
-    "register": "注册",
+    "googleLogin": "Google 登录",
+    "microsoftLogin": "Microsoft 登录",
+    "register": "邮箱注册",
     "modeLabel": "登录方式",
     "sendLink": "发送登录链接",
     "submitting": "处理中...",
@@ -97,22 +99,23 @@
     "signedOut": "已退出登录。",
     "modes": {
       "password": {
-        "title": "使用密码登录",
+        "title": "登录",
         "description": "输入注册邮箱和密码",
         "submit": "登录"
       },
       "link": {
-        "title": "使用邮箱链接登录",
+        "title": "邮箱链接登录",
         "description": "已注册账号可以通过邮箱链接进入",
         "submit": "发送登录链接"
       },
       "register": {
         "title": "注册",
-        "description": "如果邮箱不可用，请使用 Github 注册",
+        "description": "如果国内邮箱不可用，请使用其它注册方式",
         "submit": "注册"
       }
     },
     "errors": {
+      "selectMethod": "请先选择邮箱方式。",
       "requiredEmail": "请输入邮箱地址。",
       "passwordTooShort": "密码至少需要 {min} 位。",
       "passwordMismatch": "两次输入的密码不一致。",
@@ -120,7 +123,21 @@
       "linkFailed": "发送登录链接失败。",
       "registerFailed": "注册失败。",
       "githubFailed": "GitHub 登录失败。",
+      "googleFailed": "Google 登录失败。",
+      "microsoftFailed": "Microsoft 登录失败。",
       "sendFailed": "发送登录链接失败。"
+    },
+    "loginDescription": "选择一种登录方式",
+    "registerDescription": "选择一种注册方式",
+    "loginTab": "登录",
+    "registerTab": "注册",
+    "githubRegister": "使用 GitHub 注册",
+    "googleRegister": "使用 Google 注册",
+    "microsoftRegister": "使用 Microsoft 注册",
+    "sectionLabel": "账号操作",
+    "oauth": {
+      "loginLabel": "使用 {provider} 登录",
+      "registerLabel": "使用 {provider} 注册"
     }
   },
   "onboarding": {

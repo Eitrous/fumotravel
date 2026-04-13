@@ -1168,6 +1168,35 @@ html[data-theme="dark"] .auth-mode-switcher .workbench-icon-button.is-active {
     transform 180ms var(--motion-smooth);
 }
 
+.auth-oauth-stack {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.auth-section-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.auth-mode-stack {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.auth-section-entry.is-active,
+.auth-mode-entry.is-active {
+  border-color: rgba(22, 146, 95, 0.32);
+  background: rgba(22, 146, 95, 0.08);
+  color: #16925f;
+}
+
+.auth-form-stack {
+  display: grid;
+  gap: 1rem;
+  padding-top: 0.2rem;
+}
+
 .auth-oauth-button:hover,
 .auth-oauth-button:focus-visible {
   border-color: rgba(22, 146, 95, 0.32);
@@ -1194,6 +1223,13 @@ html[data-theme="dark"] .auth-oauth-button {
 
 html[data-theme="dark"] .auth-oauth-button:hover,
 html[data-theme="dark"] .auth-oauth-button:focus-visible {
+  border-color: rgba(88, 199, 143, 0.38);
+  background: rgba(88, 199, 143, 0.1);
+  color: #58c78f;
+}
+
+html[data-theme="dark"] .auth-section-entry.is-active,
+html[data-theme="dark"] .auth-mode-entry.is-active {
   border-color: rgba(88, 199, 143, 0.38);
   background: rgba(88, 199, 143, 0.1);
   color: #58c78f;

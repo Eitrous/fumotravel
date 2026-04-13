@@ -74,16 +74,26 @@
   "auth": {
     "eyebrow": "Login / Register",
     "title": "Log in to submit.",
-    "description": "Use a password, GitHub, or an email link.",
+    "description": "Use GitHub, Google, Microsoft, a password, or an email link.",
+    "loginDescription": "Choose a login method.",
+    "registerDescription": "Choose a way to create an account.",
     "emailLabel": "Email address",
     "passwordLabel": "Password",
     "confirmPasswordLabel": "Confirm password",
     "passwordPlaceholder": "At least {min} characters",
     "confirmPasswordPlaceholder": "Enter the password again",
+    "loginTab": "Log in",
+    "registerTab": "Register",
     "passwordLogin": "Password login",
     "linkLogin": "Email link login",
     "githubLogin": "Continue with GitHub",
+    "googleLogin": "Continue with Google",
+    "microsoftLogin": "Continue with Microsoft",
+    "githubRegister": "Sign up with GitHub",
+    "googleRegister": "Sign up with Google",
+    "microsoftRegister": "Sign up with Microsoft",
     "register": "Register",
+    "sectionLabel": "Account action",
     "modeLabel": "Login method",
     "sendLink": "Send login link",
     "submitting": "Working...",
@@ -95,6 +105,10 @@
     "success": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
     "loginRequiredToSubmit": "Log in before submitting.",
     "signedOut": "Signed out.",
+    "oauth": {
+      "loginLabel": "Log in with {provider}",
+      "registerLabel": "Register with {provider}"
+    },
     "modes": {
       "password": {
         "title": "Log in with password",
@@ -113,6 +127,7 @@
       }
     },
     "errors": {
+      "selectMethod": "Choose an email method first.",
       "requiredEmail": "Please enter an email address.",
       "passwordTooShort": "Password must be at least {min} characters.",
       "passwordMismatch": "The passwords do not match.",
@@ -120,6 +135,8 @@
       "linkFailed": "Failed to send the login link.",
       "registerFailed": "Registration failed.",
       "githubFailed": "GitHub login failed.",
+      "googleFailed": "Google login failed.",
+      "microsoftFailed": "Microsoft login failed.",
       "sendFailed": "Failed to send the login link."
     }
   },

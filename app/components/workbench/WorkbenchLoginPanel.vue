@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { MIN_PASSWORD_LENGTH } from '~~/shared/fumo'
 
+type AuthSection = 'login' | 'register'
 type AuthMode = 'password' | 'link' | 'register'
 
 const props = withDefaults(defineProps<{
@@ -14,7 +15,8 @@ const emit = defineEmits<{
 
 const auth = useAuthState()
 const { t } = useI18n()
-const mode = ref<AuthMode>('password')
+const authSection = ref<AuthSection>('login')
+const mode = ref<AuthMode | null>(null)
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -23,40 +25,116 @@ const errorMessage = ref('')
 const successMessage = ref('')
 
 const fallbackNextPath = computed(() => props.nextPath || '/')
-const requiresPassword = computed(() => mode.value !== 'link')
+const requiresPassword = computed(() => mode.value !== null && mode.value !== 'link')
 const requiresConfirmPassword = computed(() => mode.value === 'register')
+const hasSelectedMode = computed(() => mode.value !== null)
+const isRegisterSection = computed(() => authSection.value === 'register')
 
-const modeOptions = computed(() => [
+const resetLocalState = () => {
+  mode.value = null
+  email.value = ''
+  password.value = ''
+  confirmPassword.value = ''
+  errorMessage.value = ''
+  successMessage.value = ''
+}
+
+const sectionOptions = computed(() => [
   {
-    value: 'password' as const,
-    label: t('auth.passwordLogin'),
-    icon: 'fa-key'
-  },
-  {
-    value: 'link' as const,
-    label: t('auth.linkLogin'),
-    icon: 'fa-envelope'
+    value: 'login' as const,
+    label: t('auth.loginTab'),
+    icon: 'fa-right-to-bracket'
   },
   {
     value: 'register' as const,
-    label: t('auth.register'),
+    label: t('auth.registerTab'),
     icon: 'fa-user-plus'
   }
 ])
 
-const panelTitle = computed(() => t(`auth.modes.${mode.value}.title`))
-const panelDescription = computed(() => t(`auth.modes.${mode.value}.description`))
+const modeOptions = computed(() => {
+  if (isRegisterSection.value) {
+    return [
+      {
+        value: 'register' as const,
+        label: t('auth.register'),
+        icon: 'fa-envelope'
+      }
+    ]
+  }
+
+  return [
+    {
+      value: 'password' as const,
+      label: t('auth.passwordLogin'),
+      icon: 'fa-key'
+    },
+    {
+      value: 'link' as const,
+      label: t('auth.linkLogin'),
+      icon: 'fa-envelope'
+    }
+  ]
+})
+
+const oauthOptions = computed(() => {
+  const actionLabelKey = isRegisterSection.value ? 'registerLabel' : 'loginLabel'
+
+  return [
+    {
+      value: 'github' as const,
+      label: t(isRegisterSection.value ? 'auth.githubRegister' : 'auth.githubLogin'),
+      icon: 'fa-github',
+      actionLabel: t(`auth.oauth.${actionLabelKey}`, { provider: 'GitHub' }),
+      run: auth.signInWithGitHub
+    },
+    {
+      value: 'google' as const,
+      label: t(isRegisterSection.value ? 'auth.googleRegister' : 'auth.googleLogin'),
+      icon: 'fa-google',
+      actionLabel: t(`auth.oauth.${actionLabelKey}`, { provider: 'Google' }),
+      run: auth.signInWithGoogle
+    },
+    {
+      value: 'microsoft' as const,
+      label: t(isRegisterSection.value ? 'auth.microsoftRegister' : 'auth.microsoftLogin'),
+      icon: 'fa-microsoft',
+      actionLabel: t(`auth.oauth.${actionLabelKey}`, { provider: 'Microsoft' }),
+      run: auth.signInWithMicrosoft
+    }
+  ]
+})
+
+const panelTitle = computed(() => {
+  if (!mode.value) {
+    return t('auth.title')
+  }
+
+  return t(`auth.modes.${mode.value}.title`)
+})
+
+const panelDescription = computed(() => {
+  if (!mode.value) {
+    return t(isRegisterSection.value ? 'auth.registerDescription' : 'auth.loginDescription')
+  }
+
+  return t(`auth.modes.${mode.value}.description`)
+})
 
 const primaryActionLabel = computed(() => {
   if (submitting.value) {
     return t('auth.submitting')
   }
 
+  if (!mode.value) {
+    return t('auth.title')
+  }
+
   return t(`auth.modes.${mode.value}.submit`)
 })
 
 const primaryActionIcon = computed(() => {
-  return modeOptions.value.find((option) => option.value === mode.value)?.icon || 'fa-key'
+  return modeOptions.value.find((option) => option.value === mode.value)?.icon || 'fa-right-to-bracket'
 })
 
 const redirectAfterLogin = async () => {
@@ -92,7 +170,21 @@ const setMode = (nextMode: AuthMode) => {
   successMessage.value = ''
 }
 
+const setSection = (nextSection: AuthSection) => {
+  if (authSection.value === nextSection) {
+    return
+  }
+
+  authSection.value = nextSection
+  resetLocalState()
+}
+
 const validateForm = () => {
+  if (!mode.value) {
+    errorMessage.value = t('auth.errors.selectMethod')
+    return false
+  }
+
   if (!email.value.trim()) {
     errorMessage.value = t('auth.errors.requiredEmail')
     return false
@@ -154,22 +246,51 @@ const handleEnter = () => {
   void submitAuth()
 }
 
-const submitGitHub = async () => {
+const submitOAuth = async (
+  provider: 'github' | 'google' | 'microsoft',
+  signIn: (nextPath?: string) => Promise<unknown>
+) => {
   errorMessage.value = ''
   successMessage.value = ''
   submitting.value = true
 
   try {
-    await auth.signInWithGitHub(fallbackNextPath.value)
+    await signIn(fallbackNextPath.value)
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : t('auth.errors.githubFailed')
+    errorMessage.value = error instanceof Error ? error.message : t(`auth.errors.${provider}Failed`)
   } finally {
     submitting.value = false
   }
 }
 
+const submitGitHub = async () => {
+  await submitOAuth('github', auth.signInWithGitHub)
+}
+
+const submitGoogle = async () => {
+  await submitOAuth('google', auth.signInWithGoogle)
+}
+
+const submitMicrosoft = async () => {
+  await submitOAuth('microsoft', auth.signInWithMicrosoft)
+}
+
+const submitOAuthByProvider = async (provider: 'github' | 'google' | 'microsoft') => {
+  if (provider === 'github') {
+    await submitGitHub()
+    return
+  }
+
+  if (provider === 'google') {
+    await submitGoogle()
+    return
+  }
+
+  await submitMicrosoft()
+}
+
 const canSubmit = computed(() => {
-  return Boolean(email.value.trim()) && !submitting.value
+  return hasSelectedMode.value && Boolean(email.value.trim()) && !submitting.value
 })
 
 useWorkbenchToolbarAction(computed(() => ({
@@ -187,11 +308,45 @@ useWorkbenchToolbarAction(computed(() => ({
     <h2 class="workbench-panel__title workbench-panel__title--poster">{{ panelTitle }}</h2>
     <p class="workbench-panel__copy workbench-panel__copy--poster">{{ panelDescription }}</p>
 
-    <div class="auth-mode-switcher" role="tablist" :aria-label="t('auth.modeLabel')">
+    <div class="auth-section-switcher" role="tablist" :aria-label="t('auth.sectionLabel')">
+      <button
+        v-for="option in sectionOptions"
+        :key="option.value"
+        class="auth-oauth-button auth-section-entry"
+        :class="{ 'is-active': authSection === option.value }"
+        type="button"
+        role="tab"
+        :aria-selected="authSection === option.value"
+        :title="option.label"
+        :aria-label="option.label"
+        @click="setSection(option.value)"
+      >
+        <i class="fa-solid" :class="option.icon" aria-hidden="true" />
+        <span>{{ option.label }}</span>
+      </button>
+    </div>
+
+    <div class="auth-oauth-stack">
+      <button
+        v-for="option in oauthOptions"
+        :key="option.value"
+        class="auth-oauth-button"
+        type="button"
+        :disabled="submitting"
+        :title="option.label"
+        :aria-label="option.actionLabel"
+        @click="submitOAuthByProvider(option.value)"
+      >
+        <i class="fa-brands" :class="option.icon" aria-hidden="true" />
+        <span>{{ option.label }}</span>
+      </button>
+    </div>
+
+    <div class="auth-mode-stack" role="tablist" :aria-label="t('auth.modeLabel')">
       <button
         v-for="option in modeOptions"
         :key="option.value"
-        class="workbench-icon-button"
+        class="auth-oauth-button auth-mode-entry"
         :class="{ 'is-active': mode === option.value }"
         type="button"
         role="tab"
@@ -200,58 +355,48 @@ useWorkbenchToolbarAction(computed(() => ({
         :aria-label="option.label"
         @click="setMode(option.value)"
       >
-        <i class="button-icon fa-solid" :class="option.icon" aria-hidden="true" />
-        <span class="sr-only">{{ option.label }}</span>
+        <i class="fa-solid" :class="option.icon" aria-hidden="true" />
+        <span>{{ option.label }}</span>
       </button>
     </div>
 
-    <button
-      class="auth-oauth-button"
-      type="button"
-      :disabled="submitting"
-      :title="t('auth.githubLogin')"
-      :aria-label="t('auth.githubLogin')"
-      @click="submitGitHub"
-    >
-      <i class="fa-brands fa-github" aria-hidden="true" />
-      <span>{{ t('auth.githubLogin') }}</span>
-    </button>
+    <div v-if="hasSelectedMode" class="auth-form-stack">
+      <label class="field-label">
+        <span>{{ t('auth.emailLabel') }}</span>
+        <input
+          v-model="email"
+          class="field-input"
+          type="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          @keyup.enter="handleEnter"
+        >
+      </label>
 
-    <label class="field-label">
-      <span>{{ t('auth.emailLabel') }}</span>
-      <input
-        v-model="email"
-        class="field-input"
-        type="email"
-        autocomplete="email"
-        placeholder="you@example.com"
-        @keyup.enter="handleEnter"
-      >
-    </label>
+      <label v-if="requiresPassword" class="field-label">
+        <span>{{ t('auth.passwordLabel') }}</span>
+        <input
+          v-model="password"
+          class="field-input"
+          type="password"
+          :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
+          :placeholder="t('auth.passwordPlaceholder', { min: MIN_PASSWORD_LENGTH })"
+          @keyup.enter="handleEnter"
+        >
+      </label>
 
-    <label v-if="requiresPassword" class="field-label">
-      <span>{{ t('auth.passwordLabel') }}</span>
-      <input
-        v-model="password"
-        class="field-input"
-        type="password"
-        :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
-        :placeholder="t('auth.passwordPlaceholder', { min: MIN_PASSWORD_LENGTH })"
-        @keyup.enter="handleEnter"
-      >
-    </label>
-
-    <label v-if="requiresConfirmPassword" class="field-label">
-      <span>{{ t('auth.confirmPasswordLabel') }}</span>
-      <input
-        v-model="confirmPassword"
-        class="field-input"
-        type="password"
-        autocomplete="new-password"
-        :placeholder="t('auth.confirmPasswordPlaceholder')"
-        @keyup.enter="handleEnter"
-      >
-    </label>
+      <label v-if="requiresConfirmPassword" class="field-label">
+        <span>{{ t('auth.confirmPasswordLabel') }}</span>
+        <input
+          v-model="confirmPassword"
+          class="field-input"
+          type="password"
+          autocomplete="new-password"
+          :placeholder="t('auth.confirmPasswordPlaceholder')"
+          @keyup.enter="handleEnter"
+        >
+      </label>
+    </div>
 
     <p v-if="successMessage" class="success-banner">{{ successMessage }}</p>
     <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>

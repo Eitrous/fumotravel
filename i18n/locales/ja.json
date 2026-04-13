@@ -74,7 +74,7 @@
   "auth": {
     "eyebrow": "ログイン / 登録",
     "title": "投稿するにはログイン。",
-    "description": "パスワード、GitHub、またはメールリンクでログインできます。",
+    "description": "GitHub、Google、Microsoft、パスワード、またはメールリンクでログインできます。",
     "emailLabel": "メールアドレス",
     "passwordLabel": "パスワード",
     "confirmPasswordLabel": "パスワード確認",
@@ -83,6 +83,8 @@
     "passwordLogin": "パスワードログイン",
     "linkLogin": "メールリンクログイン",
     "githubLogin": "GitHub でログイン",
+    "googleLogin": "Google でログイン",
+    "microsoftLogin": "Microsoft でログイン",
     "register": "登録",
     "modeLabel": "ログイン方法",
     "sendLink": "ログインリンクを送信",
@@ -113,6 +115,7 @@
       }
     },
     "errors": {
+      "selectMethod": "先にメールの方法を選んでください。",
       "requiredEmail": "メールアドレスを入力してください。",
       "passwordTooShort": "パスワードは {min} 文字以上にしてください。",
       "passwordMismatch": "パスワードが一致しません。",
@@ -120,7 +123,21 @@
       "linkFailed": "ログインリンクの送信に失敗しました。",
       "registerFailed": "登録に失敗しました。",
       "githubFailed": "GitHub ログインに失敗しました。",
+      "googleFailed": "Google ログインに失敗しました。",
+      "microsoftFailed": "Microsoft ログインに失敗しました。",
       "sendFailed": "ログインリンクの送信に失敗しました。"
+    },
+    "loginDescription": "ログイン方法を選んでください。",
+    "registerDescription": "アカウントの作成方法を選んでください。",
+    "loginTab": "ログイン",
+    "registerTab": "登録",
+    "githubRegister": "GitHub で登録",
+    "googleRegister": "Google で登録",
+    "microsoftRegister": "Microsoft で登録",
+    "sectionLabel": "アカウント操作",
+    "oauth": {
+      "loginLabel": "{provider} でログイン",
+      "registerLabel": "{provider} で登録"
     }
   },
   "onboarding": {

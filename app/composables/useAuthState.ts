@@ -2,6 +2,7 @@ import type { Session, User } from '@supabase/supabase-js'
 import type { CurrentViewer } from '~~/shared/fumo'
 
 let listenerBound = false
+type OAuthProvider = 'github' | 'google' | 'azure'
 
 export const useAuthState = () => {
   const session = useState<Session | null>('auth:session', () => null)
@@ -128,12 +129,19 @@ export const useAuthState = () => {
     }
   }
 
-  const signInWithGitHub = async (nextPath?: string) => {
+  const signInWithOAuthProvider = async (
+    provider: OAuthProvider,
+    nextPath?: string,
+    options?: {
+      scopes?: string
+    }
+  ) => {
     const supabase = useSupabaseBrowserClient()
     const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'github',
+      provider,
       options: {
-        redirectTo: createLoginRedirectTarget(nextPath)
+        redirectTo: createLoginRedirectTarget(nextPath),
+        ...options
       }
     })
 
@@ -142,6 +150,20 @@ export const useAuthState = () => {
     }
 
     return data
+  }
+
+  const signInWithGitHub = async (nextPath?: string) => {
+    return signInWithOAuthProvider('github', nextPath)
+  }
+
+  const signInWithGoogle = async (nextPath?: string) => {
+    return signInWithOAuthProvider('google', nextPath)
+  }
+
+  const signInWithMicrosoft = async (nextPath?: string) => {
+    return signInWithOAuthProvider('azure', nextPath, {
+      scopes: 'email'
+    })
   }
 
   const signOut = async () => {
@@ -174,7 +196,10 @@ export const useAuthState = () => {
     signInWithPassword,
     signUpWithPassword,
     sendMagicLink,
+    signInWithOAuthProvider,
     signInWithGitHub,
+    signInWithGoogle,
+    signInWithMicrosoft,
     signOut
   }
 }

@@ -80,6 +80,35 @@ To enable GitHub login in Supabase:
 
 The app uses Supabase browser OAuth redirect flow and returns to the existing login panel. Users without a username will continue into onboarding after GitHub sign-in.
 
+## Google OAuth
+
+To enable Google login in Supabase:
+
+1. Go to Supabase Dashboard -> Authentication -> Providers -> Google, then enable Google.
+2. Create or reuse a Google OAuth client in Google Cloud, and fill its Client ID / Client Secret into Supabase.
+3. In Google Cloud, add the callback URL required by Supabase to the authorized redirect URIs.
+4. In Supabase Authentication settings, make sure Site URL and Redirect URLs include:
+   - your local dev URL
+   - your Vercel production / preview domain
+   - the in-site login return URL used by this app, such as `https://your-site/?panel=login`
+
+The app uses the same browser redirect flow as GitHub. Users without a username will continue into onboarding after Google sign-in.
+
+## Microsoft OAuth
+
+To enable Microsoft login in Supabase:
+
+1. Go to Supabase Dashboard -> Authentication -> Providers -> Azure, then enable Azure.
+2. Create or reuse an app registration in Microsoft Entra / Azure, and fill its Client ID / Client Secret into Supabase.
+3. In the Microsoft app registration, add the callback URL required by Supabase.
+4. Keep the provider as the default Microsoft social login unless you specifically want to lock it to a single tenant later.
+5. In Supabase Authentication settings, make sure Site URL and Redirect URLs include:
+   - your local dev URL
+   - your Vercel production / preview domain
+   - the in-site login return URL used by this app, such as `https://your-site/?panel=login`
+
+The app uses Supabase browser OAuth redirect flow here as well. Microsoft sign-in is wired through the Supabase `azure` provider and requests the `email` scope so the returned identity includes a usable email address.
+
 ## 重要约定
 
 - `fumo` bucket 必须保持私有
