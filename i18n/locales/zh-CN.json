@@ -89,9 +89,9 @@
     "sending": "发送中...",
     "browseFirst": "先看看地图",
     "hint": "登录完成后会自动回到你刚才想打开的内容；如果没有额外目标，默认会进入投稿面板。",
-    "magicLinkSuccess": "登录链接已经发到你的邮箱，打开邮件里的链接后会回到当前站点继续操作。",
-    "registrationNeedsConfirmation": "注册已提交，请打开邮箱确认链接后再登录。",
-    "success": "登录链接已经发到你的邮箱，打开邮件里的链接后会回到当前站点继续操作。",
+    "magicLinkSuccess": "登录链接已经发到你的邮箱，打开邮件里的链接后会回到当前站点继续操作。如果没有收到，请查看垃圾邮件",
+    "registrationNeedsConfirmation": "注册已提交，请打开邮箱确认链接后再登录。如果没有收到，请查看垃圾邮件",
+    "success": "登录链接已经发到你的邮箱，打开邮件里的链接后会回到当前站点继续操作。如果没有收到，请查看垃圾邮件",
     "loginRequiredToSubmit": "请先登录再投稿。",
     "signedOut": "已退出登录。",
     "modes": {
