@@ -15,6 +15,14 @@ const props = withDefaults(defineProps<{
   selectedPostId: null
 })
 
+type MapBoundsBox = {
+  west: number
+  south: number
+  east: number
+  north: number
+  coversWorld?: boolean
+}
+
 const emit = defineEmits<{
   'select-post': [postId: number]
 }>()
@@ -31,8 +39,120 @@ const collection = shallowRef<PublicMapCollection>({
   type: 'FeatureCollection',
   features: []
 })
+const loadedBounds = shallowRef<MapBoundsBox | null>(null)
 
 let maplibregl: typeof import('maplibre-gl') | null = null
+
+const EXPANDED_VIEWPORT_FACTOR = 2
+const MIN_LATITUDE = -90
+const MAX_LATITUDE = 90
+
+const clampLatitude = (lat: number) => Math.min(MAX_LATITUDE, Math.max(MIN_LATITUDE, lat))
+
+const normalizeLongitude = (lng: number) => {
+  return ((((lng + 180) % 360) + 360) % 360) - 180
+}
+
+const getLongitudeSpan = (west: number, east: number) => {
+  const span = east - west
+  return span >= 0 ? span : span + 360
+}
+
+const getViewportBounds = (): MapBoundsBox | null => {
+  if (!mapRef.value) {
+    return null
+  }
+
+  const bounds = mapRef.value.getBounds()
+  const rawWest = bounds.getWest()
+  const rawEast = bounds.getEast()
+  const width = getLongitudeSpan(rawWest, rawEast)
+
+  if (width >= 360) {
+    return {
+      west: -180,
+      south: clampLatitude(bounds.getSouth()),
+      east: 180,
+      north: clampLatitude(bounds.getNorth()),
+      coversWorld: true
+    }
+  }
+
+  return {
+    west: normalizeLongitude(rawWest),
+    south: clampLatitude(bounds.getSouth()),
+    east: normalizeLongitude(rawEast),
+    north: clampLatitude(bounds.getNorth())
+  }
+}
+
+const getExpandedViewportBounds = (): MapBoundsBox | null => {
+  if (!mapRef.value) {
+    return null
+  }
+
+  const bounds = mapRef.value.getBounds()
+  const rawWest = bounds.getWest()
+  const rawEast = bounds.getEast()
+  const rawSouth = clampLatitude(bounds.getSouth())
+  const rawNorth = clampLatitude(bounds.getNorth())
+  const viewportWidth = getLongitudeSpan(rawWest, rawEast)
+
+  if (viewportWidth * EXPANDED_VIEWPORT_FACTOR >= 360) {
+    return {
+      west: -180,
+      south: clampLatitude(((rawSouth + rawNorth) / 2) - ((rawNorth - rawSouth) * EXPANDED_VIEWPORT_FACTOR / 2)),
+      east: 180,
+      north: clampLatitude(((rawSouth + rawNorth) / 2) + ((rawNorth - rawSouth) * EXPANDED_VIEWPORT_FACTOR / 2)),
+      coversWorld: true
+    }
+  }
+
+  const centerLng = rawWest + (viewportWidth / 2)
+  const halfExpandedWidth = viewportWidth * EXPANDED_VIEWPORT_FACTOR / 2
+  const centerLat = (rawSouth + rawNorth) / 2
+  const halfExpandedHeight = (rawNorth - rawSouth) * EXPANDED_VIEWPORT_FACTOR / 2
+
+  return {
+    west: normalizeLongitude(centerLng - halfExpandedWidth),
+    south: clampLatitude(centerLat - halfExpandedHeight),
+    east: normalizeLongitude(centerLng + halfExpandedWidth),
+    north: clampLatitude(centerLat + halfExpandedHeight)
+  }
+}
+
+const getLongitudeIntervals = (bounds: MapBoundsBox): Array<[number, number]> => {
+  if (bounds.coversWorld || (bounds.west <= -180 && bounds.east >= 180)) {
+    return [[-180, 180]]
+  }
+
+  const west = normalizeLongitude(bounds.west)
+  const east = normalizeLongitude(bounds.east)
+
+  if (east < west) {
+    return [
+      [west, 180],
+      [-180, east]
+    ]
+  }
+
+  return [[west, east]]
+}
+
+const isIntervalInside = (inner: [number, number], outer: [number, number]) => {
+  const epsilon = 0.000001
+  return inner[0] >= outer[0] - epsilon && inner[1] <= outer[1] + epsilon
+}
+
+const isBoundsInside = (inner: MapBoundsBox, outer: MapBoundsBox) => {
+  const epsilon = 0.000001
+  const latInside = inner.south >= outer.south - epsilon && inner.north <= outer.north + epsilon
+  const lngInside = getLongitudeIntervals(inner).every((innerInterval) => {
+    return getLongitudeIntervals(outer).some((outerInterval) => isIntervalInside(innerInterval, outerInterval))
+  })
+
+  return latInside && lngInside
+}
 
 const startMapLoading = () => {
   mapLoadingRequests.value += 1
@@ -58,18 +178,13 @@ const emptyCollection: PublicMapCollection = {
   features: []
 }
 
-const fetchGeoJson = async () => {
-  if (!mapRef.value) {
-    return null
-  }
-
-  const bounds = mapRef.value.getBounds()
+const fetchGeoJson = async (bounds: MapBoundsBox) => {
   return await $fetch<PublicMapCollection>('/api/map/posts', {
     query: {
-      west: bounds.getWest(),
-      south: bounds.getSouth(),
-      east: bounds.getEast(),
-      north: bounds.getNorth()
+      west: bounds.west,
+      south: bounds.south,
+      east: bounds.east,
+      north: bounds.north
     }
   })
 }
@@ -101,11 +216,22 @@ const refreshSource = async () => {
     return
   }
 
+  const viewportBounds = getViewportBounds()
+  if (viewportBounds && loadedBounds.value && isBoundsInside(viewportBounds, loadedBounds.value)) {
+    return
+  }
+
+  const requestBounds = getExpandedViewportBounds()
+  if (!requestBounds) {
+    return
+  }
+
   startMapLoading()
   try {
-    const geojson = await fetchGeoJson()
+    const geojson = await fetchGeoJson(requestBounds)
     const nextCollection = geojson || emptyCollection
 
+    loadedBounds.value = requestBounds
     collection.value = nextCollection
 
     const source = mapRef.value.getSource('posts') as GeoJSONSource | null
@@ -254,8 +380,14 @@ onMounted(async () => {
 
   mapRef.value.on('load', async () => {
     try {
-      const geojson = await fetchGeoJson()
+      const requestBounds = getExpandedViewportBounds()
+      const geojson = requestBounds ? await fetchGeoJson(requestBounds) : null
       const nextCollection = geojson || emptyCollection
+
+      if (requestBounds) {
+        loadedBounds.value = requestBounds
+      }
+
       collection.value = nextCollection
 
       applyPoliticalLabels()
