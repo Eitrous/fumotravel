@@ -1,7 +1,6 @@
 import type { H3Event } from 'h3'
 import sharp from 'sharp'
-import { STORAGE_BUCKET } from '~~/shared/fumo'
-import { createAdminServerClient } from '~~/server/utils/supabase'
+import { downloadStorageObject, uploadStorageObject } from '~~/server/utils/storage'
 
 export type StoragePathConversionFailure = {
   sourcePath: string
@@ -101,19 +100,8 @@ const convertSinglePathToWebp = async (
   sourcePath: string,
   options: Required<Pick<EnsureStoragePathsWebpOptions, 'upsert'>>
 ) => {
-  const admin = createAdminServerClient(event)
   const targetPath = toWebpStoragePath(sourcePath)
-
-  const { data: sourceBlob, error: downloadError } = await admin
-    .storage
-    .from(STORAGE_BUCKET)
-    .download(sourcePath)
-
-  if (downloadError || !sourceBlob) {
-    throw new Error(downloadError?.message || 'Failed to download source image.')
-  }
-
-  const sourceBuffer = Buffer.from(await sourceBlob.arrayBuffer())
+  const { buffer: sourceBuffer } = await downloadStorageObject(event, sourcePath)
   const metadata = await sharp(sourceBuffer, { failOn: 'none' }).metadata()
   const quality = getWebpQuality(sourceBuffer.byteLength, metadata.width, metadata.height)
   const webpBuffer = await sharp(sourceBuffer, { failOn: 'none' })
@@ -125,17 +113,10 @@ const convertSinglePathToWebp = async (
     })
     .toBuffer()
 
-  const { error: uploadError } = await admin
-    .storage
-    .from(STORAGE_BUCKET)
-    .upload(targetPath, webpBuffer, {
-      upsert: options.upsert,
-      contentType: 'image/webp'
-    })
-
-  if (uploadError) {
-    throw new Error(uploadError.message || 'Failed to upload WebP image.')
-  }
+  await uploadStorageObject(event, targetPath, webpBuffer, {
+    upsert: options.upsert,
+    contentType: 'image/webp'
+  })
 
   return targetPath
 }

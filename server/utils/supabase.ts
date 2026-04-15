@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getHeader, type H3Event } from 'h3'
 import type { User } from '@supabase/supabase-js'
 import type { AppProfile } from '~~/shared/fumo'
-import { STORAGE_BUCKET } from '~~/shared/fumo'
+import { createSignedDownloadUrlMap } from '~~/server/utils/storage'
 
 type ProfileRow = {
   id: string
@@ -178,24 +178,5 @@ export const signStorageObjects = async (
   paths: Array<string | null | undefined>,
   expiresIn = 60 * 30
 ) => {
-  const uniquePaths = [...new Set(paths.filter(Boolean) as string[])]
-  if (!uniquePaths.length) {
-    return new Map<string, string>()
-  }
-
-  const admin = createAdminServerClient(event)
-  const { data, error } = await admin
-    .storage
-    .from(STORAGE_BUCKET)
-    .createSignedUrls(uniquePaths, expiresIn)
-
-  if (error || !data) {
-    return new Map<string, string>()
-  }
-
-  return new Map(
-    data
-      .filter((entry) => Boolean(entry.path && entry.signedUrl))
-      .map((entry) => [entry.path, entry.signedUrl as string])
-  )
+  return createSignedDownloadUrlMap(event, paths, expiresIn)
 }

@@ -17,12 +17,13 @@
   - 精确位置与公开位置分离
 - 公开详情页
 - 站内管理员审核台
-- 私有 Supabase Storage + 服务端签名 URL
+- 私有 Cloudflare R2 + 服务端签名 URL
 
 ## 技术栈
 
 - Nuxt 4
-- Supabase Auth / Database / Storage
+- Supabase Auth / Database
+- Cloudflare R2 Storage
 - MapLibre GL JS
 - Vercel
 - EXIF 解析：`exifr`
@@ -48,6 +49,12 @@ copy .env.example .env
 - `NUXT_PUBLIC_SUPABASE_URL`
 - `NUXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+- `R2_ENDPOINT`（可选；留空时按 `R2_ACCOUNT_ID` 推导）
+- `R2_SIGNED_URL_TTL_SECONDS`（可选）
 - `NUXT_PUBLIC_SITE_URL`
 - `NUXT_PUBLIC_MAP_STYLE_URL` 可保留默认免费底图
 - `GEOCODE_BASE_URL` / `GEOCODE_USER_AGENT` 可保留默认值
@@ -112,7 +119,7 @@ The app uses Supabase browser OAuth redirect flow here as well. Microsoft sign-i
 ## 重要约定
 
 - `fumo` bucket 必须保持私有
-- 浏览器只直接操作 Auth 和 Storage
+- 浏览器只直接操作 Auth；图片上传通过服务端签名 URL 直传 R2
 - 所有数据库写入都通过 Nuxt server API
 - 公开接口只返回 `approved` 投稿，且不会暴露精确坐标
 - 公开地图使用 `public_lat/public_lng`

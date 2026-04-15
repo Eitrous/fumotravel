@@ -1,11 +1,11 @@
 import { getRouterParam, readBody } from 'h3'
-import { STORAGE_BUCKET } from '~~/shared/fumo'
 import { createAdminServerClient, requireAdminUser } from '~~/server/utils/supabase'
 import {
   getOrderedPhotoRows,
   photoPayloadsToRows,
   type PhotoRow
 } from '~~/server/utils/posts'
+import { deleteStorageObjects } from '~~/server/utils/storage'
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireAdminUser(event)
@@ -179,10 +179,11 @@ export default defineEventHandler(async (event) => {
   ].filter((path) => !livePhotoPaths.has(path))
 
   if (stalePhotoPaths.length) {
-    await supabase
-      .storage
-      .from(STORAGE_BUCKET)
-      .remove(stalePhotoPaths)
+    try {
+      await deleteStorageObjects(event, stalePhotoPaths)
+    } catch {
+      // Cleanup failures should not block moderation success.
+    }
   }
 
   return { success: true }

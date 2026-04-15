@@ -6,7 +6,7 @@ import type {
   PrivacyMode,
   SubmitPostPayload
 } from '~~/shared/fumo'
-import { MAX_POST_PHOTOS, STORAGE_BUCKET } from '~~/shared/fumo'
+import { MAX_POST_PHOTOS } from '~~/shared/fumo'
 
 type SelectedPhoto = {
   id: string
@@ -20,6 +20,13 @@ type SelectedPhoto = {
   thumbPreviewUrl: string
   revokeImagePreview: boolean
   revokeThumbPreview: boolean
+}
+
+type SignedUploadTarget = {
+  path: string
+  method: 'PUT'
+  uploadUrl: string
+  contentType: string
 }
 
 const props = withDefaults(defineProps<{
@@ -567,6 +574,35 @@ const advanceUploadProgress = (step = 1) => {
   )
 }
 
+const requestSignedUploadTarget = async (path: string, contentType: string) => {
+  if (!auth.authHeaders.value.Authorization) {
+    throw new Error(t('submit.errors.sessionExpired'))
+  }
+
+  return await $fetch<SignedUploadTarget>('/api/storage/sign-upload', {
+    method: 'POST',
+    headers: auth.authHeaders.value,
+    body: {
+      path,
+      contentType
+    }
+  })
+}
+
+const uploadWithSignedUrl = async (target: SignedUploadTarget, file: Blob) => {
+  const response = await fetch(target.uploadUrl, {
+    method: target.method,
+    headers: {
+      'Content-Type': target.contentType
+    },
+    body: file
+  })
+
+  if (!response.ok) {
+    throw new Error(`Image upload failed (${response.status}).`)
+  }
+}
+
 const uploadPhoto = async (
   photo: SelectedPhoto,
   index: number,
@@ -601,7 +637,6 @@ const uploadPhoto = async (
     thumbnailFile = null
   }
 
-  const supabase = useSupabaseBrowserClient()
   const folderName = String(index + 1).padStart(2, '0')
   const safeExtension = uploadOriginalFile.name.split('.').pop()?.toLowerCase()?.replace(/[^a-z0-9]/g, '') || 'webp'
   const originalPath = `${userId}/${postFolder}/${folderName}/original.${safeExtension}`
@@ -609,33 +644,18 @@ const uploadPhoto = async (
     ? `${userId}/${postFolder}/${folderName}/thumb.webp`
     : null
 
-  const { error: uploadOriginalError } = await supabase
-    .storage
-    .from(STORAGE_BUCKET)
-    .upload(originalPath, uploadOriginalFile, {
-      upsert: false,
-      contentType: uploadOriginalFile.type || undefined
-    })
-
-  if (uploadOriginalError) {
-    throw uploadOriginalError
-  }
+  const originalTarget = await requestSignedUploadTarget(
+    originalPath,
+    uploadOriginalFile.type || 'application/octet-stream'
+  )
+  await uploadWithSignedUrl(originalTarget, uploadOriginalFile)
 
   uploadedPaths.push(originalPath)
   advanceUploadProgress()
 
   if (thumbnailFile && thumbPath) {
-    const { error: uploadThumbError } = await supabase
-      .storage
-      .from(STORAGE_BUCKET)
-      .upload(thumbPath, thumbnailFile, {
-        upsert: false,
-        contentType: 'image/webp'
-      })
-
-    if (uploadThumbError) {
-      throw uploadThumbError
-    }
+    const thumbTarget = await requestSignedUploadTarget(thumbPath, 'image/webp')
+    await uploadWithSignedUrl(thumbTarget, thumbnailFile)
 
     uploadedPaths.push(thumbPath)
     advanceUploadProgress()
@@ -687,7 +707,6 @@ const submitPost = async () => {
 
   uploading.value = true
 
-  const supabase = useSupabaseBrowserClient()
   const postFolder = isEditMode.value && props.postId
     ? `edit-${props.postId}-${crypto.randomUUID()}`
     : crypto.randomUUID()
@@ -744,11 +763,18 @@ const submitPost = async () => {
       emit('submitted', nextSuccessMessage)
     }
   } catch (error) {
-    if (uploadedPaths.length) {
-      await supabase
-        .storage
-        .from(STORAGE_BUCKET)
-        .remove(uploadedPaths)
+    if (uploadedPaths.length && auth.authHeaders.value.Authorization) {
+      try {
+        await $fetch('/api/storage/delete', {
+          method: 'POST',
+          headers: auth.authHeaders.value,
+          body: {
+            paths: uploadedPaths
+          }
+        })
+      } catch {
+        // Ignore cleanup failures and surface the main submit error.
+      }
     }
 
     errorMessage.value = error instanceof Error ? error.message : t('submit.errors.submitFailed')
