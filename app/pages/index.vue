@@ -71,7 +71,7 @@ const leadingAction = computed(() => {
     return {
       label: t('common.backToMapOverview'),
       icon: 'fa-arrow-left',
-      run: openInfoPanel
+      run: goBackPanel
     }
   }
 
@@ -83,10 +83,14 @@ const workbenchSidebarClass = computed(() => ({
   'is-dragging': mobileDrawerDragging.value
 }))
 
-const mobileDrawerStyle = computed<Record<string, string>>(() => {
-  return isMobile.value
-    ? { '--mobile-drawer-drag-offset': `${mobileDrawerDragOffset.value}px` }
-    : {}
+const mobileDrawerStyle = computed((): Record<string, string> => {
+  if (!isMobile.value) {
+    return {}
+  }
+
+  return {
+    '--mobile-drawer-drag-offset': `${mobileDrawerDragOffset.value}px`
+  }
 })
 
 const defaultPrimaryAction = computed(() => ({
@@ -217,6 +221,15 @@ async function openPanel(
 
 async function openInfoPanel() {
   await openPanel('info')
+}
+
+async function goBackPanel() {
+  if (import.meta.client && window.history.length > 1) {
+    router.back()
+    return
+  }
+
+  await openInfoPanel()
 }
 
 async function openLoginPanel(target = '/') {
@@ -555,7 +568,7 @@ onBeforeUnmount(() => {
               type="button"
               :title="t('post.exitDetail')"
               :aria-label="t('post.exitDetail')"
-              @click="openInfoPanel"
+              @click="goBackPanel"
             >
               <i class="button-icon fa-solid fa-arrow-left" aria-hidden="true" />
               <span class="sr-only">{{ t('post.exitDetail') }}</span>

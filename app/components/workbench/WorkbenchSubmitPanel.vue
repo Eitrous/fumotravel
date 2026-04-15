@@ -1012,6 +1012,8 @@ onBeforeUnmount(() => {
 .submit-guide-link {
   display: inline-flex;
   align-items: center;
+  justify-self: start;
+  width: fit-content;
   margin-top: 0.6rem;
   margin-bottom: 0.2rem;
   color: var(--accent);

@@ -30,6 +30,7 @@ const emit = defineEmits<{
 const { t, locale } = useI18n()
 const { isDark } = useTheme()
 const config = useRuntimeConfig()
+const { getPostDetail } = usePostDetailCache()
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<MapLibreMap | null>(null)
 const mapLoadingRequests = ref(0)
@@ -46,6 +47,9 @@ let maplibregl: typeof import('maplibre-gl') | null = null
 const EXPANDED_VIEWPORT_FACTOR = 2
 const MIN_LATITUDE = -90
 const MAX_LATITUDE = 90
+const SELECTED_POST_FOCUS_MIN_ZOOM = 6.8
+
+let selectedPostFocusSequence = 0
 
 const clampLatitude = (lat: number) => Math.min(MAX_LATITUDE, Math.max(MIN_LATITUDE, lat))
 
@@ -186,6 +190,49 @@ const fetchGeoJson = async (bounds: MapBoundsBox) => {
       east: bounds.east,
       north: bounds.north
     }
+  })
+}
+
+const getSelectedPostCoordinates = async (postId: number): Promise<[number, number] | null> => {
+  const selectedFeature = collection.value.features.find((feature) => feature.properties?.id === postId)
+
+  if (selectedFeature?.geometry?.type === 'Point') {
+    const coordinates = selectedFeature.geometry.coordinates
+    const lng = Number(coordinates[0])
+    const lat = Number(coordinates[1])
+    if (Number.isFinite(lng) && Number.isFinite(lat)) {
+      return [lng, lat]
+    }
+  }
+
+  try {
+    const detail = await getPostDetail(postId)
+    if (detail.publicLocation) {
+      return [detail.publicLocation.lng, detail.publicLocation.lat]
+    }
+  } catch {
+    // Keep map interaction smooth even if post detail fetch fails.
+  }
+
+  return null
+}
+
+const focusSelectedPost = async (postId: number) => {
+  if (!mapRef.value || !postId) {
+    return
+  }
+
+  const currentSequence = ++selectedPostFocusSequence
+  const coordinates = await getSelectedPostCoordinates(postId)
+
+  if (!coordinates || currentSequence !== selectedPostFocusSequence || !mapRef.value) {
+    return
+  }
+
+  mapRef.value.easeTo({
+    center: coordinates,
+    zoom: Math.max(mapRef.value.getZoom(), SELECTED_POST_FOCUS_MIN_ZOOM),
+    duration: 680
   })
 }
 
@@ -459,6 +506,10 @@ onMounted(async () => {
       })
 
       syncSelectionSource()
+
+      if (props.selectedPostId) {
+        void focusSelectedPost(props.selectedPostId)
+      }
     } finally {
       finishMapLoading()
     }
@@ -467,8 +518,12 @@ onMounted(async () => {
 
 watch(
   () => props.selectedPostId,
-  () => {
+  (selectedPostId) => {
     syncSelectionSource()
+
+    if (selectedPostId) {
+      void focusSelectedPost(selectedPostId)
+    }
   }
 )
 
