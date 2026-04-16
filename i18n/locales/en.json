@@ -104,6 +104,7 @@
     "registrationNeedsConfirmation": "Registration is submitted. Open the confirmation link in your email before logging in.",
     "success": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
     "loginRequiredToSubmit": "Log in before submitting.",
+    "loginRequiredToSuggest": "Log in before sending feedback.",
     "signedOut": "Signed out.",
     "oauth": {
       "loginLabel": "Log in with {provider}",
@@ -266,6 +267,25 @@
     },
     "errors": {
       "loadFailed": "Failed to load user page."
+    }
+  },
+  "suggestions": {
+    "quickAction": "Feedback",
+    "eyebrow": "Feedback",
+    "title": "Share your suggestion",
+    "description": "Your message is visible only to administrators.",
+    "fieldLabel": "Suggestion",
+    "placeholder": "Example: add better filters, improve map loading speed, or simplify the upload flow.",
+    "counter": "{count}/{max}",
+    "submit": "Send suggestion",
+    "submitting": "Sending…",
+    "success": "Suggestion sent. Thank you for your feedback.",
+    "backHome": "Back to home",
+    "errors": {
+      "required": "Please enter your suggestion first.",
+      "tooLong": "Suggestion must be {max} characters or fewer.",
+      "sessionExpired": "Session expired. Please log in again.",
+      "submitFailed": "Failed to send suggestion. Please try again later."
     }
   }
 }

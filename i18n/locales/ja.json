@@ -96,6 +96,7 @@
     "registrationNeedsConfirmation": "登録を受け付けました。メールの確認リンクを開いてからログインしてください。",
     "success": "ログインリンクをメールに送りました。メール内のリンクを開くと、このサイトに戻って続きから操作できます。",
     "loginRequiredToSubmit": "投稿するにはログインしてください。",
+    "loginRequiredToSuggest": "提案を送るにはログインしてください。",
     "signedOut": "ログアウトしました。",
     "modes": {
       "password": {
@@ -266,6 +267,25 @@
     },
     "errors": {
       "loadFailed": "ユーザーページの読み込みに失敗しました。"
+    }
+  },
+  "suggestions": {
+    "quickAction": "提案",
+    "eyebrow": "提案ボックス",
+    "title": "サイトへの提案を送る",
+    "description": "提案内容は管理者だけがバックエンドで確認できます。",
+    "fieldLabel": "提案内容",
+    "placeholder": "例: フィルター機能を追加したい、地図の読み込みを速くしたい、投稿体験を改善したい。",
+    "counter": "{count}/{max}",
+    "submit": "提案を送信",
+    "submitting": "送信中…",
+    "success": "提案を送信しました。フィードバックありがとうございます。",
+    "backHome": "ホームへ戻る",
+    "errors": {
+      "required": "提案内容を入力してください。",
+      "tooLong": "提案内容は {max} 文字以内で入力してください。",
+      "sessionExpired": "ログイン状態の有効期限が切れました。再ログインしてください。",
+      "submitFailed": "提案の送信に失敗しました。しばらくしてからもう一度お試しください。"
     }
   }
 }

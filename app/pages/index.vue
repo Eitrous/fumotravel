@@ -15,6 +15,12 @@ useSeoMeta({
   description: () => t('seo.description')
 })
 
+useHead({
+  bodyAttrs: {
+    class: 'home-page-body'
+  }
+})
+
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthState()
@@ -257,6 +263,20 @@ async function openSubmitPanel() {
   }
 
   await openPanel('submit')
+}
+
+async function openSuggestionPage() {
+  await auth.init()
+
+  if (!auth.user.value) {
+    openWorkbenchNotice({
+      message: t('auth.loginRequiredToSuggest'),
+      icon: 'fa-right-to-bracket'
+    })
+    return
+  }
+
+  await navigateTo('/suggestions')
 }
 
 async function handleMarkerSelection(postId: number) {
@@ -652,7 +672,10 @@ onBeforeUnmount(() => {
             :inert="mobileDrawerPeeking"
             :aria-hidden="mobileDrawerPeeking ? 'true' : undefined"
           >
-            <WorkbenchInfoPanel v-if="currentPanel === 'info'" />
+            <WorkbenchInfoPanel
+              v-if="currentPanel === 'info'"
+              @open-feedback="openSuggestionPage"
+            />
 
             <WorkbenchLoginPanel
               v-else-if="currentPanel === 'login'"

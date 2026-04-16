@@ -27,6 +27,7 @@ const handleSignOut = async () => {
     <nav class="site-nav" aria-label="管理员导航">
       <NuxtLink class="site-nav__link" to="/">公开地图</NuxtLink>
       <NuxtLink class="site-nav__link" to="/admin/review">审核台</NuxtLink>
+      <NuxtLink class="site-nav__link" to="/admin/suggestions">建议箱</NuxtLink>
     </nav>
 
     <div class="site-actions">

@@ -96,6 +96,7 @@
     "registrationNeedsConfirmation": "注册已提交，请打开邮箱确认链接后再登录。如果没有收到，请查看垃圾邮件",
     "success": "登录链接已经发到你的邮箱，打开邮件里的链接后会回到当前站点继续操作。如果没有收到，请查看垃圾邮件",
     "loginRequiredToSubmit": "请先登录再投稿。",
+    "loginRequiredToSuggest": "请先登录后再填写建议。",
     "signedOut": "已退出登录。",
     "modes": {
       "password": {
@@ -266,6 +267,25 @@
     },
     "errors": {
       "loadFailed": "用户主页加载失败。"
+    }
+  },
+  "suggestions": {
+    "quickAction": "建议",
+    "eyebrow": "建议箱",
+    "title": "建议箱",
+    "description": "非常感谢你的访问。如你所见，这个网站还有很多做的不够好的地方，因为老实说我本来只是做着玩玩的根本没想到会有这么多人来XDDDD。总之，如果你有想吐槽的地方或是好玩的想法，请写在下面，我给您磕一个。",
+    "fieldLabel": "建议内容",
+    "placeholder": "例如：希望增加XX功能、优化地图显示、改进投稿体验等。",
+    "counter": "{count}/{max}",
+    "submit": "提交建议",
+    "submitting": "提交中…",
+    "success": "已提交，感谢你的反馈！",
+    "backHome": "返回首页",
+    "errors": {
+      "required": "请先填写内容。",
+      "tooLong": "内容不能超过 {max} 个字符。",
+      "sessionExpired": "登录状态已失效，请重新登录。",
+      "submitFailed": "提交失败，请稍后再试。"
     }
   }
 }

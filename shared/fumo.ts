@@ -153,6 +153,25 @@ export type SubmitPostPhotoPayload = {
   thumbPath: string | null
 }
 
+export type SubmitSuggestionPayload = {
+  content: string
+}
+
+export type SuggestionSubmitResponse = {
+  success: true
+}
+
+export type AdminSuggestionItem = {
+  id: number
+  content: string
+  createdAt: string | null
+  author: {
+    id: string
+    username: string | null
+    avatarUrl: string | null
+  }
+}
+
 export type PostPhotoAsset = {
   imageUrl: string | null
   thumbUrl: string | null
@@ -179,6 +198,7 @@ export const MAP_DEFAULT_CENTER: [number, number] = [116.397389, 39.908722]
 export const MAP_DEFAULT_ZOOM = 1.55
 export const MAX_TITLE_LENGTH = 80
 export const MAX_BODY_LENGTH = 1000
+export const MAX_SUGGESTION_LENGTH = 2000
 export const MAX_POST_PHOTOS = 10
 export const MIN_PASSWORD_LENGTH = 8
 export const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{3,24}$/
