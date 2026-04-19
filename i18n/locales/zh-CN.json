@@ -237,8 +237,8 @@
     }
   },
   "edit": {
-    "eyebrow": "编辑作品",
-    "title": "修改这条投稿。",
+    "eyebrow": "",
+    "title": "修改投稿",
     "description": "修改会先进入审核，通过后才替换公开版本。",
     "loading": "正在加载可编辑内容...",
     "submitButton": "提交修改审核",
@@ -247,8 +247,15 @@
     "removePhoto": "移除照片",
     "movePhotoEarlier": "照片前移",
     "movePhotoLater": "照片后移",
+    "deleteButton": "删除稿件",
+    "deleteConfirmTitle": "确认删除这条稿件？",
+    "deleteConfirmMessage": "删除后将无法恢复，相关图片也会一并清理。",
+    "deleteCancel": "取消删除",
+    "deleteConfirmAction": "确认删除",
+    "deleteSuccess": "稿件已删除。",
     "errors": {
-      "loadFailed": "可编辑内容加载失败。"
+      "loadFailed": "可编辑内容加载失败。",
+      "deleteFailed": "删除稿件失败。"
     }
   },
   "user": {

@@ -19,8 +19,8 @@
     "saving": "保存中…",
     "notProvided": "未提供",
     "notAnnotated": "未注記",
-    "privacyExact": "正確な公開位置",
-    "privacyApprox": "概略の公開位置",
+    "privacyExact": "正確な座標を公開",
+    "privacyApprox": "おおよその位置を公開",
     "publicLocation": "公開位置",
     "exactLocation": "正確な位置",
     "languageNames": {
@@ -31,11 +31,11 @@
   },
   "seo": {
     "title": "Fumo Spots",
-    "description": "東方 Project ファンが世界各地で撮影した fumo 写真を共有するためのワールドマップです。"
+    "description": "世界各地で撮影された fumo 写真を共有し、大きな地図で旅の記録をつなげます。"
   },
   "workbench": {
     "eyebrow": "マップワークスペース",
-    "title": "ピンを開くか、新しい投稿を始める。",
+    "title": "ピンを選んで詳細を見るか、新しい投稿を始める。",
     "description": "地図は閲覧用。操作はここで行う。",
     "posterGreeting": "こんにちは",
     "posterIntro": "Fumo Spots へようこそ",
@@ -46,7 +46,7 @@
     "actions": {
       "login": "ログイン",
       "submit": "投稿を始める",
-      "overview": "概要に戻る"
+      "overview": "地図の概要に戻る"
     },
     "facts": {
       "browse": {
@@ -72,9 +72,9 @@
     "taiwanProvinceLabel": "TAIWAN PROVINCE"
   },
   "auth": {
-    "eyebrow": "ログイン / 登録",
-    "title": "投稿するにはログイン。",
-    "description": "GitHub、Google、Microsoft、パスワード、またはメールリンクでログインできます。",
+    "eyebrow": "",
+    "title": "ログイン / 登録",
+    "description": "",
     "emailLabel": "メールアドレス",
     "passwordLabel": "パスワード",
     "confirmPasswordLabel": "パスワード確認",
@@ -85,33 +85,33 @@
     "githubLogin": "GitHub でログイン",
     "googleLogin": "Google でログイン",
     "microsoftLogin": "Microsoft でログイン",
-    "register": "登録",
+    "register": "メール登録",
     "modeLabel": "ログイン方法",
     "sendLink": "ログインリンクを送信",
     "submitting": "処理中...",
     "sending": "送信中...",
     "browseFirst": "先に地図を見る",
-    "hint": "ログイン後は元の場所に戻ります。指定がなければ投稿パネルを開きます。",
-    "magicLinkSuccess": "ログインリンクをメールに送りました。メール内のリンクを開くと、このサイトに戻って続きから操作できます。",
-    "registrationNeedsConfirmation": "登録を受け付けました。メールの確認リンクを開いてからログインしてください。",
-    "success": "ログインリンクをメールに送りました。メール内のリンクを開くと、このサイトに戻って続きから操作できます。",
+    "hint": "ログイン完了後は、直前に開こうとしていた内容へ自動で戻ります。追加の遷移先がない場合は投稿パネルを開きます。",
+    "magicLinkSuccess": "ログインリンクをメールに送信しました。メール内のリンクを開くとこのサイトに戻って続けられます。届かない場合は迷惑メールも確認してください。",
+    "registrationNeedsConfirmation": "登録を受け付けました。メールの確認リンクを開いてからログインしてください。届かない場合は迷惑メールも確認してください。",
+    "success": "ログインリンクをメールに送信しました。メール内のリンクを開くとこのサイトに戻って続けられます。届かない場合は迷惑メールも確認してください。",
     "loginRequiredToSubmit": "投稿するにはログインしてください。",
     "loginRequiredToSuggest": "提案を送るにはログインしてください。",
     "signedOut": "ログアウトしました。",
     "modes": {
       "password": {
-        "title": "パスワードでログイン",
+        "title": "ログイン",
         "description": "登録済みのメールアドレスとパスワードを入力してください",
         "submit": "ログイン"
       },
       "link": {
-        "title": "メールリンクでログイン",
-        "description": "登録済みアカウントはメールリンクでも入れます",
+        "title": "メールリンクログイン",
+        "description": "登録済みアカウントはメールリンクでログインできます",
         "submit": "ログインリンクを送信"
       },
       "register": {
         "title": "登録",
-        "description": "",
+        "description": "国内メールが使えない場合は、ほかの登録方法を利用してください",
         "submit": "登録"
       }
     },
@@ -128,8 +128,8 @@
       "microsoftFailed": "Microsoft ログインに失敗しました。",
       "sendFailed": "ログインリンクの送信に失敗しました。"
     },
-    "loginDescription": "ログイン方法を選んでください。",
-    "registerDescription": "アカウントの作成方法を選んでください。",
+    "loginDescription": "ログイン方法を選択",
+    "registerDescription": "登録方法を選択",
     "loginTab": "ログイン",
     "registerTab": "登録",
     "githubRegister": "GitHub で登録",
@@ -237,8 +237,8 @@
     }
   },
   "edit": {
-    "eyebrow": "投稿を編集",
-    "title": "この投稿を編集する。",
+    "eyebrow": "",
+    "title": "投稿を修正",
     "description": "変更は審査後に公開版へ反映されます。",
     "loading": "編集内容を読み込み中...",
     "submitButton": "編集を審査へ送信",
@@ -247,8 +247,15 @@
     "removePhoto": "写真を削除",
     "movePhotoEarlier": "写真を前へ移動",
     "movePhotoLater": "写真を後ろへ移動",
+    "deleteButton": "投稿を削除",
+    "deleteConfirmTitle": "この投稿を削除しますか？",
+    "deleteConfirmMessage": "削除すると元に戻せず、関連画像も削除されます。",
+    "deleteCancel": "削除を取り消す",
+    "deleteConfirmAction": "削除を確定",
+    "deleteSuccess": "投稿を削除しました。",
     "errors": {
-      "loadFailed": "編集内容の読み込みに失敗しました。"
+      "loadFailed": "編集内容の読み込みに失敗しました。",
+      "deleteFailed": "投稿の削除に失敗しました。"
     }
   },
   "user": {
@@ -271,21 +278,21 @@
   },
   "suggestions": {
     "quickAction": "提案",
-    "eyebrow": "提案ボックス",
-    "title": "サイトへの提案を送る",
-    "description": "提案内容は管理者だけがバックエンドで確認できます。",
+    "eyebrow": "提案箱",
+    "title": "提案箱",
+    "description": "ご訪問ありがとうございます。ご覧の通り、このサイトにはまだ至らない点がたくさんあります。正直、最初は遊びで作っていただけで、こんなに多くの人が来るとは思っていませんでした XDDDD。なので、ツッコミたい点や面白いアイデアがあれば、ぜひ下に書いてください。",
     "fieldLabel": "提案内容",
-    "placeholder": "例: フィルター機能を追加したい、地図の読み込みを速くしたい、投稿体験を改善したい。",
+    "placeholder": "例：XX機能を追加してほしい、地図表示を最適化したい、投稿体験を改善したい など。",
     "counter": "{count}/{max}",
     "submit": "提案を送信",
     "submitting": "送信中…",
-    "success": "提案を送信しました。フィードバックありがとうございます。",
-    "backHome": "ホームへ戻る",
+    "success": "送信しました。フィードバックありがとうございます！",
+    "backHome": "ホームに戻る",
     "errors": {
       "required": "提案内容を入力してください。",
-      "tooLong": "提案内容は {max} 文字以内で入力してください。",
-      "sessionExpired": "ログイン状態の有効期限が切れました。再ログインしてください。",
-      "submitFailed": "提案の送信に失敗しました。しばらくしてからもう一度お試しください。"
+      "tooLong": "内容は {max} 文字を超えられません。",
+      "sessionExpired": "ログイン状態の有効期限が切れました。もう一度ログインしてください。",
+      "submitFailed": "送信に失敗しました。しばらくしてからもう一度お試しください。"
     }
   }
 }

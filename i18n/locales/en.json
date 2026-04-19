@@ -19,8 +19,8 @@
     "saving": "Saving…",
     "notProvided": "Not provided",
     "notAnnotated": "Not annotated",
-    "privacyExact": "Exact public location",
-    "privacyApprox": "Approximate public location",
+    "privacyExact": "Public exact coordinates",
+    "privacyApprox": "Public approximate location",
     "publicLocation": "Public location",
     "exactLocation": "Exact location",
     "languageNames": {
@@ -31,7 +31,7 @@
   },
   "seo": {
     "title": "Fumo Spots",
-    "description": "Share fumo photos taken by Touhou Project fans around the world."
+    "description": "Share fumo photos taken around the world and connect each trip on one big map."
   },
   "workbench": {
     "eyebrow": "Map Workbench",
@@ -40,13 +40,13 @@
     "posterGreeting": "Hello",
     "posterIntro": "Welcome to Fumo Spots",
     "posterExplore": "Browse fumo photos from around the world",
-    "posterShareLead": "Or",
+    "posterShareLead": "You can also",
     "posterShare": "share your own work",
     "posterClosing": "Looking forward to your post.",
     "actions": {
       "login": "Log in",
       "submit": "Start a post",
-      "overview": "Return to the overview"
+      "overview": "Back to map overview"
     },
     "facts": {
       "browse": {
@@ -59,7 +59,7 @@
       },
       "submission": {
         "title": "Each post",
-        "body": "Photo, place, author ID, and note."
+        "body": "Each record includes photos, place, author ID, and note."
       }
     }
   },
@@ -72,11 +72,11 @@
     "taiwanProvinceLabel": "TAIWAN PROVINCE"
   },
   "auth": {
-    "eyebrow": "Login / Register",
-    "title": "Log in to submit.",
-    "description": "Use GitHub, Google, Microsoft, a password, or an email link.",
-    "loginDescription": "Choose a login method.",
-    "registerDescription": "Choose a way to create an account.",
+    "eyebrow": "",
+    "title": "Log in / Register",
+    "description": "",
+    "loginDescription": "Choose a login method",
+    "registerDescription": "Choose a registration method",
     "emailLabel": "Email address",
     "passwordLabel": "Password",
     "confirmPasswordLabel": "Confirm password",
@@ -86,23 +86,23 @@
     "registerTab": "Register",
     "passwordLogin": "Password login",
     "linkLogin": "Email link login",
-    "githubLogin": "Continue with GitHub",
-    "googleLogin": "Continue with Google",
-    "microsoftLogin": "Continue with Microsoft",
-    "githubRegister": "Sign up with GitHub",
-    "googleRegister": "Sign up with Google",
-    "microsoftRegister": "Sign up with Microsoft",
-    "register": "Register",
-    "sectionLabel": "Account action",
+    "githubLogin": "GitHub login",
+    "googleLogin": "Google login",
+    "microsoftLogin": "Microsoft login",
+    "githubRegister": "Register with GitHub",
+    "googleRegister": "Register with Google",
+    "microsoftRegister": "Register with Microsoft",
+    "register": "Email registration",
+    "sectionLabel": "Account actions",
     "modeLabel": "Login method",
     "sendLink": "Send login link",
-    "submitting": "Working...",
+    "submitting": "Processing...",
     "sending": "Sending...",
     "browseFirst": "Browse the map first",
-    "hint": "After login, you will return to the thing you were trying to open. If there is no explicit target, the submit panel opens by default.",
-    "magicLinkSuccess": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
-    "registrationNeedsConfirmation": "Registration is submitted. Open the confirmation link in your email before logging in.",
-    "success": "The login link has been sent to your inbox. Open it and you will come back to this site to continue.",
+    "hint": "After login, you will automatically return to what you just tried to open. If there is no extra target, the submit panel opens by default.",
+    "magicLinkSuccess": "The login link has been sent to your email. Open the link in the email to come back and continue. If you cannot find it, please check spam.",
+    "registrationNeedsConfirmation": "Registration submitted. Please open the confirmation link in your email before logging in. If you cannot find it, please check spam.",
+    "success": "The login link has been sent to your email. Open the link in the email to come back and continue. If you cannot find it, please check spam.",
     "loginRequiredToSubmit": "Log in before submitting.",
     "loginRequiredToSuggest": "Log in before sending feedback.",
     "signedOut": "Signed out.",
@@ -112,18 +112,18 @@
     },
     "modes": {
       "password": {
-        "title": "Log in with password",
-        "description": "Use your registered email and password",
+        "title": "Log in",
+        "description": "Enter your registered email and password",
         "submit": "Log in"
       },
       "link": {
-        "title": "Log in with an email link",
-        "description": "Registered accounts can enter through an email link",
+        "title": "Email link login",
+        "description": "Registered accounts can log in through an email link",
         "submit": "Send login link"
       },
       "register": {
         "title": "Register",
-        "description": "",
+        "description": "If domestic email providers are unavailable, please use another registration method",
         "submit": "Register"
       }
     },
@@ -237,8 +237,8 @@
     }
   },
   "edit": {
-    "eyebrow": "Edit Post",
-    "title": "Edit this post.",
+    "eyebrow": "",
+    "title": "Edit submission",
     "description": "Changes are reviewed before they replace the public version.",
     "loading": "Loading editable version...",
     "submitButton": "Submit edit for review",
@@ -247,8 +247,15 @@
     "removePhoto": "Remove photo",
     "movePhotoEarlier": "Move photo earlier",
     "movePhotoLater": "Move photo later",
+    "deleteButton": "Delete submission",
+    "deleteConfirmTitle": "Delete this submission?",
+    "deleteConfirmMessage": "This action cannot be undone, and related images will be removed.",
+    "deleteCancel": "Cancel",
+    "deleteConfirmAction": "Confirm delete",
+    "deleteSuccess": "Submission deleted.",
     "errors": {
-      "loadFailed": "Failed to load editable post."
+      "loadFailed": "Failed to load editable post.",
+      "deleteFailed": "Failed to delete submission."
     }
   },
   "user": {
@@ -270,22 +277,22 @@
     }
   },
   "suggestions": {
-    "quickAction": "Feedback",
-    "eyebrow": "Feedback",
-    "title": "Share your suggestion",
-    "description": "Your message is visible only to administrators.",
-    "fieldLabel": "Suggestion",
-    "placeholder": "Example: add better filters, improve map loading speed, or simplify the upload flow.",
+    "quickAction": "Suggestion",
+    "eyebrow": "Suggestion Box",
+    "title": "Suggestion Box",
+    "description": "Thank you very much for visiting. As you can see, this site still has many rough edges, because honestly I originally made it just for fun and never expected so many people to come XDDDD. Anyway, if you have anything to roast or any fun ideas, please write them below.",
+    "fieldLabel": "Suggestion content",
+    "placeholder": "For example: hope to add feature XX, improve map display, improve submission experience, etc.",
     "counter": "{count}/{max}",
-    "submit": "Send suggestion",
+    "submit": "Submit suggestion",
     "submitting": "Sending…",
-    "success": "Suggestion sent. Thank you for your feedback.",
-    "backHome": "Back to home",
+    "success": "Submitted. Thank you for your feedback!",
+    "backHome": "Back to home page",
     "errors": {
-      "required": "Please enter your suggestion first.",
-      "tooLong": "Suggestion must be {max} characters or fewer.",
-      "sessionExpired": "Session expired. Please log in again.",
-      "submitFailed": "Failed to send suggestion. Please try again later."
+      "required": "Please fill in content first.",
+      "tooLong": "Content cannot exceed {max} characters.",
+      "sessionExpired": "Login session expired. Please log in again.",
+      "submitFailed": "Submit failed. Please try again later."
     }
   }
 }

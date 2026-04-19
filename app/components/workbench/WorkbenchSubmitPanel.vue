@@ -69,6 +69,8 @@ const detectingExif = ref(false)
 const reverseLookupPending = ref(false)
 const loadingEditable = ref(false)
 const uploading = ref(false)
+const deletingPost = ref(false)
+const deleteDialogOpen = ref(false)
 const uploadProgressStepCount = ref(0)
 const uploadProgressStepDone = ref(0)
 const errorMessage = ref('')
@@ -532,6 +534,8 @@ const canSubmit = computed(() => {
     && auth.viewer.value
     && !loadingEditable.value
     && !uploading.value
+    && !deletingPost.value
+    && !deleteDialogOpen.value
   )
 })
 
@@ -776,6 +780,70 @@ const submitPost = async () => {
   }
 }
 
+const openDeleteDialog = () => {
+  if (!isEditMode.value || !props.postId || uploading.value || loadingEditable.value || deletingPost.value) {
+    return
+  }
+
+  deleteDialogOpen.value = true
+}
+
+const closeDeleteDialog = () => {
+  if (deletingPost.value) {
+    return
+  }
+
+  deleteDialogOpen.value = false
+}
+
+const deletePost = async () => {
+  if (!isEditMode.value || !props.postId || deletingPost.value) {
+    return
+  }
+
+  if (!auth.authHeaders.value.Authorization) {
+    errorMessage.value = t('submit.errors.sessionExpired')
+    return
+  }
+
+  deletingPost.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    const response = await fetch(`/api/posts/${props.postId}/delete`, {
+      method: 'POST',
+      headers: auth.authHeaders.value
+    })
+
+    if (!response.ok) {
+      throw new Error(t('edit.errors.deleteFailed'))
+    }
+
+    const viewerUsername = auth.viewer.value?.profile.username
+    invalidatePostDetail(props.postId)
+    if (viewerUsername) {
+      invalidateUserPage(viewerUsername)
+    }
+
+    const nextSuccessMessage = t('edit.deleteSuccess')
+    deleteDialogOpen.value = false
+    emit('submitted', nextSuccessMessage)
+    await navigateTo(createWorkbenchLocation('info'))
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : t('edit.errors.deleteFailed')
+  } finally {
+    deletingPost.value = false
+  }
+}
+
+watch(
+  () => [isEditMode.value, props.postId],
+  () => {
+    deleteDialogOpen.value = false
+  }
+)
+
 useWorkbenchToolbarAction(computed(() => ({
   label: uploading.value
     ? (isEditMode.value ? t('edit.submitting') : t('submit.submitting'))
@@ -812,14 +880,29 @@ onBeforeUnmount(() => {
       </div>
       <span class="submit-upload-progress__text">{{ uploadProgressPercent }}%</span>
     </div>
-    <a
-      class="submit-guide-link"
-      href="https://blog.0x-3f.com/2026/04/12/fumospots_manual/#%E6%8A%95%E7%A8%BF%E9%A1%BB%E7%9F%A5"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      投稿须知
-    </a>
+    <div class="submit-top-tools">
+      <a
+        class="submit-guide-link"
+        href="https://blog.0x-3f.com/2026/04/12/fumospots_manual/#%E6%8A%95%E7%A8%BF%E9%A1%BB%E7%9F%A5"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        投稿须知
+      </a>
+
+      <button
+        v-if="isEditMode"
+        class="workbench-icon-button workbench-icon-button--danger workbench-delete-trigger"
+        type="button"
+        :title="t('edit.deleteButton')"
+        :aria-label="t('edit.deleteButton')"
+        :disabled="uploading || loadingEditable || deletingPost"
+        @click="openDeleteDialog"
+      >
+        <i class="button-icon fa-solid" :class="deletingPost ? 'fa-spinner fa-spin' : 'fa-trash-can'" aria-hidden="true" />
+        <span class="sr-only">{{ t('edit.deleteButton') }}</span>
+      </button>
+    </div>
     <p v-if="loadingEditable" class="status-inline">{{ t('edit.loading') }}</p>
 
     <section class="workbench-stack-section">
@@ -1003,19 +1086,68 @@ onBeforeUnmount(() => {
       />
     </section>
 
+    <div
+      v-if="deleteDialogOpen"
+      class="workbench-like-dialog workbench-delete-dialog"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="t('edit.deleteConfirmTitle')"
+      @click.self="closeDeleteDialog"
+    >
+      <div class="workbench-like-dialog__panel workbench-delete-dialog__panel">
+        <i class="workbench-like-dialog__icon fa-solid fa-triangle-exclamation" aria-hidden="true" />
+        <div class="workbench-delete-dialog__content">
+          <p class="workbench-delete-dialog__title">{{ t('edit.deleteConfirmTitle') }}</p>
+          <p>{{ t('edit.deleteConfirmMessage') }}</p>
+        </div>
+
+        <div class="workbench-delete-dialog__actions">
+          <button
+            class="workbench-icon-button"
+            type="button"
+            :aria-label="t('edit.deleteCancel')"
+            :title="t('edit.deleteCancel')"
+            :disabled="deletingPost"
+            @click="closeDeleteDialog"
+          >
+            <i class="button-icon fa-solid fa-xmark" aria-hidden="true" />
+            <span class="sr-only">{{ t('edit.deleteCancel') }}</span>
+          </button>
+
+          <button
+            class="workbench-icon-button workbench-icon-button--danger"
+            type="button"
+            :aria-label="t('edit.deleteConfirmAction')"
+            :title="t('edit.deleteConfirmAction')"
+            :disabled="deletingPost"
+            @click="deletePost"
+          >
+            <i class="button-icon fa-solid" :class="deletingPost ? 'fa-spinner fa-spin' : 'fa-trash-can'" aria-hidden="true" />
+            <span class="sr-only">{{ t('edit.deleteConfirmAction') }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <p v-if="successMessage" class="success-banner">{{ successMessage }}</p>
     <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
   </section>
 </template>
 
 <style scoped>
+.submit-top-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.2rem;
+}
+
 .submit-guide-link {
   display: inline-flex;
   align-items: center;
-  justify-self: start;
   width: fit-content;
-  margin-top: 0.6rem;
-  margin-bottom: 0.2rem;
   color: var(--accent);
   font-size: 0.92rem;
   font-weight: 600;
@@ -1026,5 +1158,43 @@ onBeforeUnmount(() => {
 .submit-guide-link:hover,
 .submit-guide-link:focus-visible {
   color: var(--accent-deep);
+}
+
+.workbench-delete-trigger {
+  flex: 0 0 auto;
+  width: 3.4rem;
+  height: 2.2rem;
+  margin-left: 0;
+  border-radius: 0.72rem;
+}
+
+.workbench-delete-dialog__panel {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  row-gap: 0.75rem;
+}
+
+.workbench-delete-dialog__content {
+  min-width: 0;
+}
+
+.workbench-delete-dialog__title {
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+.workbench-delete-dialog__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+}
+
+.workbench-delete-dialog__actions .workbench-icon-button {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.7rem;
 }
 </style>
