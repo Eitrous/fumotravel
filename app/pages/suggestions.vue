@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SubmitSuggestionPayload } from '~~/shared/fumo'
 import { MAX_SUGGESTION_LENGTH } from '~~/shared/fumo'
+import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
 
 definePageMeta({
   middleware: ['require-auth']
@@ -27,29 +28,6 @@ const submitLabel = computed(() => {
     ? t('suggestions.submitting')
     : t('suggestions.submit')
 })
-
-const normalizeApiErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-
-  if (error && typeof error === 'object') {
-    const maybeError = error as {
-      statusMessage?: unknown
-      data?: { statusMessage?: unknown }
-    }
-
-    if (typeof maybeError.statusMessage === 'string' && maybeError.statusMessage.trim()) {
-      return maybeError.statusMessage
-    }
-
-    if (typeof maybeError.data?.statusMessage === 'string' && maybeError.data.statusMessage.trim()) {
-      return maybeError.data.statusMessage
-    }
-  }
-
-  return fallback
-}
 
 const submitSuggestion = async () => {
   successMessage.value = ''

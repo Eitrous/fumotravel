@@ -7,6 +7,7 @@ import type {
   SubmitPostPayload
 } from '~~/shared/fumo'
 import { MAX_POST_PHOTOS } from '~~/shared/fumo'
+import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
 
 type SelectedPhoto = {
   id: string
@@ -205,7 +206,7 @@ const loadEditablePost = async () => {
     })
     applyEditablePost(detail)
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : t('edit.errors.loadFailed')
+    errorMessage.value = normalizeApiErrorMessage(error, t('edit.errors.loadFailed'))
   } finally {
     loadingEditable.value = false
   }
@@ -330,7 +331,7 @@ const runPlaceSearch = async () => {
       }
     })
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : t('submit.errors.searchFailed')
+    errorMessage.value = normalizeApiErrorMessage(error, t('submit.errors.searchFailed'))
   } finally {
     searching.value = false
   }
@@ -773,7 +774,7 @@ const submitPost = async () => {
       }
     }
 
-    errorMessage.value = error instanceof Error ? error.message : t('submit.errors.submitFailed')
+    errorMessage.value = normalizeApiErrorMessage(error, t('submit.errors.submitFailed'))
   } finally {
     uploading.value = false
     resetUploadProgress()
@@ -817,7 +818,24 @@ const deletePost = async () => {
     })
 
     if (!response.ok) {
-      throw new Error(t('edit.errors.deleteFailed'))
+      let statusMessage = ''
+
+      try {
+        const payload = await response.json() as {
+          statusMessage?: unknown
+        }
+
+        if (typeof payload.statusMessage === 'string' && payload.statusMessage.trim()) {
+          statusMessage = payload.statusMessage.trim()
+        }
+      } catch {
+        // Ignore response body parsing errors and fallback to status text.
+      }
+
+      throw {
+        statusCode: response.status,
+        statusMessage: statusMessage || response.statusText
+      }
     }
 
     const viewerUsername = auth.viewer.value?.profile.username
@@ -831,7 +849,7 @@ const deletePost = async () => {
     emit('submitted', nextSuccessMessage)
     await navigateTo(createWorkbenchLocation('info'))
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : t('edit.errors.deleteFailed')
+    errorMessage.value = normalizeApiErrorMessage(error, t('edit.errors.deleteFailed'))
   } finally {
     deletingPost.value = false
   }

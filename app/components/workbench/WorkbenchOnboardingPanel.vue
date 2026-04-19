@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
+
 const props = withDefaults(defineProps<{
   nextPath?: string | null
 }>(), {
@@ -71,7 +73,7 @@ const submitUsername = async () => {
     await auth.refreshViewer()
     await navigateTo(fallbackNextPath.value, { replace: true })
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : t('onboarding.errors.saveFailed')
+    errorMessage.value = normalizeApiErrorMessage(error, t('onboarding.errors.saveFailed'))
   } finally {
     saving.value = false
   }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AdminReviewPost } from '~~/shared/fumo'
+import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
 
 definePageMeta({
   layout: 'admin',
@@ -93,29 +94,6 @@ const migrationFeedbackMessage = ref('')
 const migrationErrorMessage = ref('')
 const migrationFailurePreview = ref<MigrationFailurePreview[]>([])
 const migrationSummary = ref<MigrationRunSummary | null>(null)
-
-const normalizeApiErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-
-  if (error && typeof error === 'object') {
-    const maybeError = error as {
-      statusMessage?: unknown
-      data?: { statusMessage?: unknown }
-    }
-
-    if (typeof maybeError.statusMessage === 'string' && maybeError.statusMessage.trim()) {
-      return maybeError.statusMessage
-    }
-
-    if (typeof maybeError.data?.statusMessage === 'string' && maybeError.data.statusMessage.trim()) {
-      return maybeError.data.statusMessage
-    }
-  }
-
-  return fallback
-}
 
 const getAuthHeadersOrThrow = () => {
   const headers = auth.authHeaders.value
@@ -391,7 +369,7 @@ const loadPosts = async () => {
     feedbackMessage.value = ''
     errorMessage.value = ''
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '待审核列表加载失败。'
+    errorMessage.value = normalizeApiErrorMessage(error, '待审核列表加载失败。')
   } finally {
     loading.value = false
   }
@@ -440,7 +418,7 @@ const submitReview = async (action: 'approve' | 'reject') => {
       : '已驳回，公开内容不会被修改。'
     errorMessage.value = ''
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '审核操作失败。'
+    errorMessage.value = normalizeApiErrorMessage(error, '审核操作失败。')
   } finally {
     submitting.value = false
   }

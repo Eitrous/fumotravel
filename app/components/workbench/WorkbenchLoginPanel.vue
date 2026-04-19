@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { MIN_PASSWORD_LENGTH } from '~~/shared/fumo'
+import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
 
 type AuthSection = 'login' | 'register'
 type AuthMode = 'password' | 'link' | 'register'
@@ -236,7 +237,7 @@ const submitAuth = async () => {
     await auth.sendMagicLink(nextEmail, fallbackNextPath.value)
     successMessage.value = t('auth.magicLinkSuccess')
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : t(`auth.errors.${mode.value}Failed`)
+    errorMessage.value = normalizeApiErrorMessage(error, t(`auth.errors.${mode.value}Failed`))
   } finally {
     submitting.value = false
   }
@@ -257,7 +258,7 @@ const submitOAuth = async (
   try {
     await signIn(fallbackNextPath.value)
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : t(`auth.errors.${provider}Failed`)
+    errorMessage.value = normalizeApiErrorMessage(error, t(`auth.errors.${provider}Failed`))
   } finally {
     submitting.value = false
   }

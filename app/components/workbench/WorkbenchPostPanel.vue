@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PostLikePayload, PostLikeResponse, PublicPostDetail } from '~~/shared/fumo'
+import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
 
 const props = defineProps<{
   postId: number
@@ -107,7 +108,7 @@ const loadPost = async () => {
 
     post.value = null
     selectedPhotoIndex.value = 0
-    errorMessage.value = error instanceof Error ? error.message : t('post.errors.loadFailed')
+    errorMessage.value = normalizeApiErrorMessage(error, t('post.errors.loadFailed'))
   } finally {
     if (currentLoad === loadSequence) {
       loading.value = false
@@ -228,7 +229,7 @@ const toggleLike = async () => {
     }
     updatePostDetailLike(response.postId, response, viewerId.value)
   } catch (error) {
-    openLikeDialog(error instanceof Error ? error.message : t('post.errors.likeFailed'))
+    openLikeDialog(normalizeApiErrorMessage(error, t('post.errors.likeFailed')))
   } finally {
     liking.value = false
   }

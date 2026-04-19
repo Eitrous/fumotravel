@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PublicUserPage, UserPostSummary } from '~~/shared/fumo'
+import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
 
 const props = defineProps<{
   username: string
@@ -8,12 +9,19 @@ const props = defineProps<{
 const auth = useAuthState()
 const { t } = useI18n()
 const { formatDateTime } = useFormatters()
-const { getUserPage } = useUserPageCache()
+const { getUserPage, invalidateUserPage } = useUserPageCache()
 
 const userPage = ref<PublicUserPage | null>(null)
 const loading = ref(true)
 const errorMessage = ref('')
+const isEditingUsername = ref(false)
+const usernameDraft = ref('')
+const usernameError = ref('')
+const savingUsername = ref(false)
 let loadSequence = 0
+
+const displayUsername = computed(() => userPage.value?.profile.username || props.username)
+const canEditUsername = computed(() => Boolean(userPage.value?.isSelf))
 
 const statusLabel = (post: UserPostSummary) => {
   if (post.hasPendingRevision) {
@@ -21,6 +29,88 @@ const statusLabel = (post: UserPostSummary) => {
   }
 
   return t(`user.status.${post.status}`)
+}
+
+const startUsernameEdit = () => {
+  if (!canEditUsername.value || savingUsername.value) {
+    return
+  }
+
+  usernameError.value = ''
+  usernameDraft.value = displayUsername.value
+  isEditingUsername.value = true
+}
+
+const cancelUsernameEdit = () => {
+  if (savingUsername.value) {
+    return
+  }
+
+  usernameError.value = ''
+  usernameDraft.value = displayUsername.value
+  isEditingUsername.value = false
+}
+
+const submitUsernameUpdate = async () => {
+  if (!canEditUsername.value || savingUsername.value) {
+    return
+  }
+
+  const nextUsername = usernameDraft.value.trim()
+  usernameError.value = ''
+
+  if (!nextUsername) {
+    usernameError.value = t('user.errors.usernameRequired')
+    return
+  }
+
+  const previousUsername = displayUsername.value
+  if (nextUsername === previousUsername) {
+    isEditingUsername.value = false
+    return
+  }
+
+  if (!auth.authHeaders.value.Authorization) {
+    usernameError.value = t('submit.errors.sessionExpired')
+    return
+  }
+
+  savingUsername.value = true
+
+  try {
+    await $fetch('/api/profile/setup', {
+      method: 'POST',
+      headers: auth.authHeaders.value,
+      body: {
+        username: nextUsername
+      }
+    })
+
+    await auth.refreshViewer()
+    invalidateUserPage(previousUsername)
+    invalidateUserPage(nextUsername)
+
+    if (userPage.value) {
+      userPage.value = {
+        ...userPage.value,
+        profile: {
+          ...userPage.value.profile,
+          username: nextUsername
+        }
+      }
+    }
+
+    usernameDraft.value = nextUsername
+    isEditingUsername.value = false
+
+    await navigateTo(createWorkbenchLocation('user', {
+      username: nextUsername
+    }), { replace: true })
+  } catch (error) {
+    usernameError.value = normalizeApiErrorMessage(error, t('user.errors.saveFailed'))
+  } finally {
+    savingUsername.value = false
+  }
 }
 
 const loadUserPage = async () => {
@@ -58,7 +148,7 @@ const loadUserPage = async () => {
     }
 
     userPage.value = null
-    errorMessage.value = error instanceof Error ? error.message : t('user.errors.loadFailed')
+    errorMessage.value = normalizeApiErrorMessage(error, t('user.errors.loadFailed'))
   } finally {
     if (currentLoad === loadSequence) {
       loading.value = false
@@ -74,6 +164,12 @@ watch(
   { immediate: true }
 )
 
+watch(displayUsername, (username) => {
+  if (!isEditingUsername.value) {
+    usernameDraft.value = username
+  }
+}, { immediate: true })
+
 onMounted(() => {
   void auth.init()
 })
@@ -83,9 +179,68 @@ onMounted(() => {
   <section class="workbench-panel workbench-panel--user">
     <div class="workbench-user__head">
       <span class="eyebrow">{{ t('user.eyebrow') }}</span>
-      <h2 class="workbench-panel__title workbench-panel__title--poster">
-        @{{ userPage?.profile.username || username }}
-      </h2>
+
+      <div class="workbench-user__identity">
+        <template v-if="isEditingUsername && canEditUsername">
+          <label for="workbench-user-username-input" class="sr-only">{{ t('user.editUsername') }}</label>
+          <input
+            id="workbench-user-username-input"
+            v-model="usernameDraft"
+            class="field-input workbench-user__username-input"
+            maxlength="24"
+            :disabled="savingUsername"
+            :aria-label="t('user.editUsername')"
+            @keydown.enter.prevent="submitUsernameUpdate"
+            @keydown.esc.prevent="cancelUsernameEdit"
+          >
+
+          <div class="workbench-user__identity-actions">
+            <button
+              class="workbench-icon-button"
+              type="button"
+              :title="t('user.saveUsername')"
+              :aria-label="t('user.saveUsername')"
+              :disabled="savingUsername || !usernameDraft.trim()"
+              @click="submitUsernameUpdate"
+            >
+              <i class="button-icon fa-solid" :class="savingUsername ? 'fa-spinner fa-spin' : 'fa-check'" aria-hidden="true" />
+              <span class="sr-only">{{ t('user.saveUsername') }}</span>
+            </button>
+
+            <button
+              class="workbench-icon-button"
+              type="button"
+              :title="t('user.cancelEditUsername')"
+              :aria-label="t('user.cancelEditUsername')"
+              :disabled="savingUsername"
+              @click="cancelUsernameEdit"
+            >
+              <i class="button-icon fa-solid fa-xmark" aria-hidden="true" />
+              <span class="sr-only">{{ t('user.cancelEditUsername') }}</span>
+            </button>
+          </div>
+        </template>
+
+        <template v-else>
+          <h2 class="workbench-panel__title workbench-panel__title--poster">
+            @{{ displayUsername }}
+          </h2>
+
+          <button
+            v-if="canEditUsername"
+            class="workbench-icon-button workbench-user__edit-username"
+            type="button"
+            :title="t('user.editUsername')"
+            :aria-label="t('user.editUsername')"
+            @click="startUsernameEdit"
+          >
+            <i class="button-icon fa-solid fa-pen-to-square" aria-hidden="true" />
+            <span class="sr-only">{{ t('user.editUsername') }}</span>
+          </button>
+        </template>
+      </div>
+
+      <p v-if="usernameError" class="error-banner workbench-user__username-error">{{ usernameError }}</p>
     </div>
 
     <section class="workbench-stack-section workbench-user__posts">
@@ -137,3 +292,50 @@ onMounted(() => {
     </section>
   </section>
 </template>
+
+<style scoped>
+.workbench-user__identity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.workbench-user__identity .workbench-panel__title {
+  min-width: 0;
+}
+
+.workbench-user__username-input {
+  min-width: 0;
+  width: 100%;
+  max-width: 20rem;
+}
+
+.workbench-user__identity-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.workbench-user__identity-actions .workbench-icon-button,
+.workbench-user__edit-username {
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 0.65rem;
+}
+
+.workbench-user__username-error {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .workbench-user__identity {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.55rem;
+  }
+
+  .workbench-user__identity-actions {
+    justify-self: end;
+  }
+}
+</style>

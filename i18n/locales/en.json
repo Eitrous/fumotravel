@@ -264,6 +264,9 @@
     "visibleCount": "{count} item(s)",
     "loading": "Loading posts...",
     "editPost": "Edit post",
+    "editUsername": "Edit username",
+    "saveUsername": "Save username",
+    "cancelEditUsername": "Cancel edit",
     "pendingRevision": "Edit pending review",
     "emptyTitle": "No visible posts",
     "emptyDescription": "Approved posts will appear here.",
@@ -273,7 +276,9 @@
       "rejected": "Rejected"
     },
     "errors": {
-      "loadFailed": "Failed to load user page."
+      "loadFailed": "Failed to load user page.",
+      "usernameRequired": "Please enter a username.",
+      "saveFailed": "Failed to update username."
     }
   },
   "suggestions": {

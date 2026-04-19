@@ -264,6 +264,9 @@
     "visibleCount": "{count} 条",
     "loading": "正在加载作品...",
     "editPost": "编辑作品",
+    "editUsername": "修改用户名",
+    "saveUsername": "保存用户名",
+    "cancelEditUsername": "取消修改",
     "pendingRevision": "修改待审核",
     "emptyTitle": "暂无可见作品",
     "emptyDescription": "通过审核的作品会显示在这里。",
@@ -273,7 +276,9 @@
       "rejected": "已驳回"
     },
     "errors": {
-      "loadFailed": "用户主页加载失败。"
+      "loadFailed": "用户主页加载失败。",
+      "usernameRequired": "请输入用户名。",
+      "saveFailed": "修改用户名失败。"
     }
   },
   "suggestions": {

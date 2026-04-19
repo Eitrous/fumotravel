@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AdminSuggestionItem } from '~~/shared/fumo'
+import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
 
 definePageMeta({
   layout: 'admin',
@@ -12,29 +13,6 @@ const { formatDateTime } = useFormatters({ locale: 'zh-CN' })
 const suggestions = ref<AdminSuggestionItem[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
-
-const normalizeApiErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-
-  if (error && typeof error === 'object') {
-    const maybeError = error as {
-      statusMessage?: unknown
-      data?: { statusMessage?: unknown }
-    }
-
-    if (typeof maybeError.statusMessage === 'string' && maybeError.statusMessage.trim()) {
-      return maybeError.statusMessage
-    }
-
-    if (typeof maybeError.data?.statusMessage === 'string' && maybeError.data.statusMessage.trim()) {
-      return maybeError.data.statusMessage
-    }
-  }
-
-  return fallback
-}
 
 const displayAuthor = (item: AdminSuggestionItem) => {
   if (item.author.username) {
