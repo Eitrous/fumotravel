@@ -213,6 +213,7 @@
     "searchButton": "Search place",
     "publicPlaceLabel": "Public place name",
     "publicPlacePlaceholder": "Example: Human Village, Gensokyo",
+    "locationFieldsHint": "Country, region, and city are updated from search results or the map point.",
     "countryLabel": "Country",
     "countryPlaceholder": "Gensokyo",
     "regionLabel": "Region / State",
@@ -279,6 +280,19 @@
       "loadFailed": "Failed to load user page.",
       "usernameRequired": "Please enter a username.",
       "saveFailed": "Failed to update username."
+    }
+  },
+  "region": {
+    "eyebrow": "Region",
+    "postsTitle": "Posts",
+    "visibleCount": "{count} item(s)",
+    "loading": "Loading posts...",
+    "sortCreated": "Sort by submission time",
+    "sortCaptured": "Sort by capture time",
+    "emptyTitle": "No visible posts",
+    "emptyDescription": "Approved posts in this area will appear here.",
+    "errors": {
+      "loadFailed": "Failed to load region posts."
     }
   },
   "suggestions": {

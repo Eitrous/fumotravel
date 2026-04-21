@@ -58,6 +58,7 @@ const placeName = ref('')
 const countryName = ref<string | null>(null)
 const regionName = ref<string | null>(null)
 const cityName = ref<string | null>(null)
+const lastAutoPlaceName = ref<string | null>(null)
 const privacyMode = ref<PrivacyMode>('exact')
 const exactLocation = ref<LatLng | null>(null)
 const publicLocation = ref<LatLng | null>(null)
@@ -116,6 +117,7 @@ const resetForm = () => {
   countryName.value = null
   regionName.value = null
   cityName.value = null
+  lastAutoPlaceName.value = null
   privacyMode.value = 'exact'
   exactLocation.value = null
   publicLocation.value = null
@@ -168,6 +170,7 @@ const applyEditablePost = (detail: EditablePostDetail) => {
   countryName.value = detail.countryName
   regionName.value = detail.regionName
   cityName.value = detail.cityName
+  lastAutoPlaceName.value = null
   privacyMode.value = 'exact'
   exactLocation.value = detail.exactLocation
   publicLocation.value = detail.exactLocation
@@ -274,8 +277,32 @@ const createThumbnail = async (file: File) => {
   })
 }
 
-const applyGeocodeResult = (result: GeocodeResult) => {
-  placeName.value = result.placeName
+const applyPlaceNameFromGeocode = (
+  nextPlaceName: string,
+  mode: 'always' | 'if-auto'
+) => {
+  const normalizedPlaceName = nextPlaceName.trim()
+
+  if (mode === 'always') {
+    placeName.value = normalizedPlaceName
+    lastAutoPlaceName.value = normalizedPlaceName || null
+    return
+  }
+
+  const currentPlaceName = placeName.value.trim()
+  if (!currentPlaceName || (lastAutoPlaceName.value && currentPlaceName === lastAutoPlaceName.value)) {
+    placeName.value = normalizedPlaceName
+    lastAutoPlaceName.value = normalizedPlaceName || null
+  }
+}
+
+const applyGeocodeResult = (
+  result: GeocodeResult,
+  options: {
+    placeNameMode?: 'always' | 'if-auto'
+  } = {}
+) => {
+  applyPlaceNameFromGeocode(result.placeName, options.placeNameMode || 'always')
   countryName.value = result.countryName
   regionName.value = result.regionName
   cityName.value = result.cityName
@@ -292,9 +319,11 @@ const reverseLookupLocation = async (location: LatLng) => {
       }
     })
 
-    applyGeocodeResult(result)
+    applyGeocodeResult(result, {
+      placeNameMode: 'if-auto'
+    })
   } catch {
-    // Reverse lookup is only a convenience and should not block manual input.
+    // Reverse lookup is only a convenience and should not block location updates.
   } finally {
     reverseLookupPending.value = false
   }
@@ -350,7 +379,9 @@ const selectSearchResult = (result: GeocodeResult) => {
     lng: result.lng
   }
 
-  applyGeocodeResult(result)
+  applyGeocodeResult(result, {
+    placeNameMode: 'always'
+  })
 }
 
 const extractExif = async (file: File) => {
@@ -1067,20 +1098,40 @@ onBeforeUnmount(() => {
             <input v-model="placeName" class="field-input" :placeholder="t('submit.publicPlacePlaceholder')">
           </label>
 
+          <p class="field-hint">{{ t('submit.locationFieldsHint') }}</p>
+
           <div class="field-grid field-grid--two">
             <label class="field-label">
               <span>{{ t('submit.countryLabel') }}</span>
-              <input v-model="countryName" class="field-input" :placeholder="t('submit.countryPlaceholder')">
+              <input
+                :value="countryName || ''"
+                class="field-input field-input--readonly"
+                :placeholder="t('submit.countryPlaceholder')"
+                readonly
+                aria-readonly="true"
+              >
             </label>
             <label class="field-label">
               <span>{{ t('submit.regionLabel') }}</span>
-              <input v-model="regionName" class="field-input" :placeholder="t('submit.regionPlaceholder')">
+              <input
+                :value="regionName || ''"
+                class="field-input field-input--readonly"
+                :placeholder="t('submit.regionPlaceholder')"
+                readonly
+                aria-readonly="true"
+              >
             </label>
           </div>
 
           <label class="field-label">
             <span>{{ t('submit.cityLabel') }}</span>
-            <input v-model="cityName" class="field-input" :placeholder="t('submit.cityPlaceholder')">
+            <input
+              :value="cityName || ''"
+              class="field-input field-input--readonly"
+              :placeholder="t('submit.cityPlaceholder')"
+              readonly
+              aria-readonly="true"
+            >
           </label>
         </div>
       </div>
@@ -1214,5 +1265,20 @@ onBeforeUnmount(() => {
   width: 2.35rem;
   height: 2.35rem;
   border-radius: 0.7rem;
+}
+
+.field-input--readonly {
+  color: var(--ink-soft);
+  cursor: default;
+  background: rgba(255, 255, 255, 0.44);
+}
+
+.field-input--readonly:focus {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .field-input--readonly {
+  background: rgba(255, 255, 255, 0.03);
 }
 </style>

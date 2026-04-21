@@ -3,7 +3,8 @@ export type PostStatus = 'pending' | 'approved' | 'rejected'
 export type PostRevisionStatus = 'pending' | 'approved' | 'rejected'
 export type AdminReviewItemKind = 'post' | 'revision'
 export type UserRole = 'user' | 'admin'
-export type WorkbenchPanel = 'info' | 'post' | 'login' | 'onboarding' | 'submit' | 'edit' | 'user'
+export type WorkbenchPanel = 'info' | 'post' | 'login' | 'onboarding' | 'submit' | 'edit' | 'user' | 'region'
+export type RegionSort = 'created' | 'captured'
 
 export type LatLng = {
   lat: number
@@ -120,6 +121,45 @@ export type PublicUserPage = {
   }
   isSelf: boolean
   posts: UserPostSummary[]
+}
+
+export type RegionScope = {
+  countryName: string | null
+  regionName: string
+  cityName: string | null
+}
+
+export type GeoBounds = {
+  west: number
+  south: number
+  east: number
+  north: number
+}
+
+export type RegionGeometryResponse = {
+  scope: RegionScope
+  bbox: GeoBounds | null
+  geometry: GeoJSON.Geometry | null
+}
+
+export type RegionPostSummary = {
+  id: number
+  title: string
+  thumbUrl: string | null
+  placeName: string | null
+  capturedAt: string | null
+  createdAt: string | null
+  author: {
+    username: string
+  }
+}
+
+export type PublicRegionPage = {
+  title: string
+  scope: RegionScope
+  sort: RegionSort
+  postCount: number
+  posts: RegionPostSummary[]
 }
 
 export type PostLikePayload = {

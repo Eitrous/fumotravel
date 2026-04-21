@@ -213,6 +213,7 @@
     "searchButton": "場所を検索",
     "publicPlaceLabel": "公開する場所名",
     "publicPlacePlaceholder": "例: Human Village, Gensokyo",
+    "locationFieldsHint": "国・地域・都市は検索結果または地図上の位置から自動更新されます。",
     "countryLabel": "国",
     "countryPlaceholder": "Gensokyo",
     "regionLabel": "地域 / 都道府県",
@@ -279,6 +280,19 @@
       "loadFailed": "ユーザーページの読み込みに失敗しました。",
       "usernameRequired": "ユーザー名を入力してください。",
       "saveFailed": "ユーザー名の変更に失敗しました。"
+    }
+  },
+  "region": {
+    "eyebrow": "地域",
+    "postsTitle": "投稿作品",
+    "visibleCount": "{count} 件",
+    "loading": "投稿を読み込み中...",
+    "sortCreated": "投稿日時順",
+    "sortCaptured": "撮影日時順",
+    "emptyTitle": "表示できる投稿はありません",
+    "emptyDescription": "この地域の公開投稿がここに表示されます。",
+    "errors": {
+      "loadFailed": "地域投稿の読み込みに失敗しました。"
     }
   },
   "suggestions": {

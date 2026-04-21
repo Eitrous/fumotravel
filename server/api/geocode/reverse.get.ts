@@ -1,5 +1,8 @@
-import { getHeader, getQuery } from 'h3'
-import { normalizeGeocodeResult } from '~~/server/utils/geocode'
+import { getQuery } from 'h3'
+import {
+  fetchReverseGeocodeResult,
+  getPreferredGeocodeAcceptLanguage
+} from '~~/server/utils/geocode'
 import {
   enforceRateLimit,
   getRateLimitIdentifier,
@@ -25,20 +28,10 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const result = await $fetch<any>(`${config.geocodeBaseUrl}/reverse`, {
-      query: {
-        lat,
-        lon: lng,
-        format: 'jsonv2',
-        addressdetails: 1
-      },
-      headers: {
-        'User-Agent': config.geocodeUserAgent,
-        'Accept-Language': getHeader(event, 'accept-language') || 'zh-CN,en'
-      }
-    })
-
-    return normalizeGeocodeResult(result)
+    return await fetchReverseGeocodeResult(event, {
+      lat,
+      lng
+    }, getPreferredGeocodeAcceptLanguage(event))
   } catch {
     throw createError({
       statusCode: 502,

@@ -213,6 +213,7 @@
     "searchButton": "搜索地点",
     "publicPlaceLabel": "公开地点名称",
     "publicPlacePlaceholder": "例如：Human Village, Gensokyo",
+    "locationFieldsHint": "国家、地区、城市会根据搜索结果或地图点位自动更新。",
     "countryLabel": "国家",
     "countryPlaceholder": "Gensokyo",
     "regionLabel": "地区 / 州省",
@@ -279,6 +280,19 @@
       "loadFailed": "用户主页加载失败。",
       "usernameRequired": "请输入用户名。",
       "saveFailed": "修改用户名失败。"
+    }
+  },
+  "region": {
+    "eyebrow": "地区投稿",
+    "postsTitle": "投稿作品",
+    "visibleCount": "{count} 条",
+    "loading": "正在加载作品...",
+    "sortCreated": "按提交时间",
+    "sortCaptured": "按拍摄时间",
+    "emptyTitle": "暂无可见作品",
+    "emptyDescription": "这个地区的公开投稿会显示在这里。",
+    "errors": {
+      "loadFailed": "地区投稿加载失败。"
     }
   },
   "suggestions": {

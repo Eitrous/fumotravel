@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PostLikePayload, PostLikeResponse, PublicPostDetail } from '~~/shared/fumo'
+import type { PostLikePayload, PostLikeResponse, PublicPostDetail, RegionScope } from '~~/shared/fumo'
 import { normalizeApiErrorMessage } from '~~/app/composables/normalizeApiErrorMessage'
 
 const props = defineProps<{
@@ -75,6 +75,38 @@ const authorPath = computed(() => {
     ? createWorkbenchLocation('user', { username: post.value.author.username })
     : createWorkbenchLocation('info')
 })
+
+const regionScopeForPost = (cityName: string | null = null): RegionScope | null => {
+  if (!post.value?.regionName) {
+    return null
+  }
+
+  return {
+    countryName: post.value.countryName,
+    regionName: post.value.regionName,
+    cityName
+  }
+}
+
+const regionPath = () => {
+  const scope = regionScopeForPost()
+  return scope
+    ? createWorkbenchLocation('region', {
+        regionScope: scope,
+        regionSort: 'created'
+      })
+    : createWorkbenchLocation('info')
+}
+
+const cityPath = () => {
+  const scope = regionScopeForPost(post.value?.cityName || null)
+  return scope && scope.cityName
+    ? createWorkbenchLocation('region', {
+        regionScope: scope,
+        regionSort: 'created'
+      })
+    : createWorkbenchLocation('info')
+}
 
 const backgroundImageStyle = (imageUrl: string) => ({
   backgroundImage: `url("${imageUrl.replace(/"/g, '\\"')}")`
@@ -493,8 +525,27 @@ onBeforeUnmount(() => {
           </p>
           <p>
             <i class="button-icon fa-solid fa-location-dot" aria-hidden="true" />
-            <span v-if="[post.cityName, post.regionName, post.countryName].filter(Boolean).length" class="support-copy">
-              {{ [post.cityName, post.regionName, post.countryName].filter(Boolean).join(' / ') }}
+            <span v-if="[post.countryName, post.regionName, post.cityName].filter(Boolean).length" class="support-copy">
+              <template v-if="post.countryName">
+                <span>{{ post.countryName }}</span>
+              </template>
+              <template v-if="post.regionName">
+                <span v-if="post.countryName"> / </span>
+                <NuxtLink class="workbench-detail-link" :to="regionPath()">
+                  {{ post.regionName }}
+                </NuxtLink>
+              </template>
+              <template v-if="post.cityName">
+                <span v-if="post.countryName || post.regionName"> / </span>
+                <NuxtLink
+                  v-if="post.regionName"
+                  class="workbench-detail-link"
+                  :to="cityPath()"
+                >
+                  {{ post.cityName }}
+                </NuxtLink>
+                <span v-else>{{ post.cityName }}</span>
+              </template>
             </span>
             <span>{{ post.placeName || t('post.unnamedPlaceName') }}</span>
           </p>

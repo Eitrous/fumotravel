@@ -1,5 +1,9 @@
-import { getHeader, getQuery } from 'h3'
-import { normalizeGeocodeResult } from '~~/server/utils/geocode'
+import { getQuery } from 'h3'
+import {
+  fetchSearchGeocodeEntries,
+  getPreferredGeocodeAcceptLanguage,
+  normalizeGeocodeResult
+} from '~~/server/utils/geocode'
 import {
   enforceRateLimit,
   getRateLimitIdentifier,
@@ -27,17 +31,9 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const results = await $fetch<any[]>(`${config.geocodeBaseUrl}/search`, {
-      query: {
-        q,
-        format: 'jsonv2',
-        addressdetails: 1,
-        limit: 6
-      },
-      headers: {
-        'User-Agent': config.geocodeUserAgent,
-        'Accept-Language': getHeader(event, 'accept-language') || 'zh-CN,en'
-      }
+    const results = await fetchSearchGeocodeEntries(event, q, {
+      limit: 6,
+      acceptLanguage: getPreferredGeocodeAcceptLanguage(event)
     })
 
     return results.map(normalizeGeocodeResult)

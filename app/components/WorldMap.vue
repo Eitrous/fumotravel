@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
-import type { PublicMapCollection, PublicMapFeatureProperties } from '~~/shared/fumo'
+import type {
+  GeoBounds,
+  PublicMapCollection,
+  PublicMapFeatureProperties,
+  RegionScope
+} from '~~/shared/fumo'
 import {
   MAP_DEFAULT_CENTER,
   MAP_DEFAULT_STYLE_URL,
@@ -11,8 +16,10 @@ import { applyTaiwanProvinceLabelPolicy } from '~~/app/composables/useMapPolitic
 
 const props = withDefaults(defineProps<{
   selectedPostId?: number | null
+  highlightRegionScope?: RegionScope | null
 }>(), {
-  selectedPostId: null
+  selectedPostId: null,
+  highlightRegionScope: null
 })
 
 type MapBoundsBox = {
@@ -23,6 +30,15 @@ type MapBoundsBox = {
   coversWorld?: boolean
 }
 
+type RegionHighlightProperties = {
+  scopeKey: string
+}
+
+type RegionHighlightCollection = GeoJSON.FeatureCollection<
+  GeoJSON.Geometry,
+  RegionHighlightProperties
+>
+
 const emit = defineEmits<{
   'select-post': [postId: number]
 }>()
@@ -31,6 +47,7 @@ const { t, locale } = useI18n()
 const { isDark } = useTheme()
 const config = useRuntimeConfig()
 const { getPostDetail } = usePostDetailCache()
+const { getRegionGeometry } = useRegionGeometryCache()
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<MapLibreMap | null>(null)
 const mapLoadingRequests = ref(0)
@@ -41,6 +58,11 @@ const collection = shallowRef<PublicMapCollection>({
   features: []
 })
 const loadedBounds = shallowRef<MapBoundsBox | null>(null)
+const regionHighlightCollection = shallowRef<RegionHighlightCollection>({
+  type: 'FeatureCollection',
+  features: []
+})
+const activeRegionBounds = shallowRef<GeoBounds | null>(null)
 
 let maplibregl: typeof import('maplibre-gl') | null = null
 
@@ -48,13 +70,36 @@ const EXPANDED_VIEWPORT_FACTOR = 2
 const MIN_LATITUDE = -90
 const MAX_LATITUDE = 90
 const SELECTED_POST_FOCUS_MIN_ZOOM = 6.8
+const REGION_FIT_MAX_ZOOM = 10
+const REGION_FIT_DURATION_MS = 720
 
 let selectedPostFocusSequence = 0
+let regionHighlightSequence = 0
+let pendingRegionFitKey: string | null = null
+
+const emptyCollection: PublicMapCollection = {
+  type: 'FeatureCollection',
+  features: []
+}
 
 const clampLatitude = (lat: number) => Math.min(MAX_LATITUDE, Math.max(MIN_LATITUDE, lat))
 
 const normalizeLongitude = (lng: number) => {
   return ((((lng + 180) % 360) + 360) % 360) - 180
+}
+
+const normalizeScopeValue = (value: string | null) => value?.trim().toLowerCase() || ''
+
+const getRegionScopeKey = (scope: RegionScope | null | undefined) => {
+  if (!scope) {
+    return ''
+  }
+
+  return [
+    normalizeScopeValue(scope.countryName),
+    normalizeScopeValue(scope.regionName),
+    normalizeScopeValue(scope.cityName)
+  ].join('::')
 }
 
 const getLongitudeSpan = (west: number, east: number) => {
@@ -177,9 +222,29 @@ const normalizeProperties = (raw: Record<string, unknown>): PublicMapFeatureProp
   }
 }
 
-const emptyCollection: PublicMapCollection = {
-  type: 'FeatureCollection',
-  features: []
+const buildRegionHighlightCollection = (
+  scopeKey: string,
+  geometry: GeoJSON.Geometry | null
+): RegionHighlightCollection => {
+  if (!geometry || (geometry.type !== 'Polygon' && geometry.type !== 'MultiPolygon')) {
+    return {
+      type: 'FeatureCollection',
+      features: []
+    }
+  }
+
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {
+          scopeKey
+        },
+        geometry
+      }
+    ]
+  }
 }
 
 const fetchGeoJson = async (bounds: MapBoundsBox) => {
@@ -258,6 +323,63 @@ const syncSelectionSource = () => {
     : emptyCollection)
 }
 
+const syncRegionHighlightSource = () => {
+  if (!mapRef.value) {
+    return
+  }
+
+  const source = mapRef.value.getSource('region-highlight') as GeoJSONSource | null
+  source?.setData(regionHighlightCollection.value)
+}
+
+const clearRegionHighlightSource = () => {
+  regionHighlightCollection.value = {
+    type: 'FeatureCollection',
+    features: []
+  }
+  activeRegionBounds.value = null
+  pendingRegionFitKey = null
+  syncRegionHighlightSource()
+}
+
+const getRegionFitPadding = () => {
+  if (import.meta.client && window.innerWidth <= 980) {
+    return {
+      top: 56,
+      right: 44,
+      bottom: Math.max(220, Math.round(window.innerHeight * 0.32)),
+      left: 44
+    }
+  }
+
+  return {
+    top: 56,
+    right: 56,
+    bottom: 56,
+    left: 56
+  }
+}
+
+const fitPendingRegionBounds = () => {
+  if (!mapRef.value || !pendingRegionFitKey || !activeRegionBounds.value) {
+    return
+  }
+
+  mapRef.value.fitBounds(
+    [
+      [activeRegionBounds.value.west, activeRegionBounds.value.south],
+      [activeRegionBounds.value.east, activeRegionBounds.value.north]
+    ],
+    {
+      padding: getRegionFitPadding(),
+      maxZoom: REGION_FIT_MAX_ZOOM,
+      duration: REGION_FIT_DURATION_MS
+    }
+  )
+
+  pendingRegionFitKey = null
+}
+
 const refreshSource = async () => {
   if (!mapRef.value) {
     return
@@ -291,104 +413,198 @@ const refreshSource = async () => {
   }
 }
 
-const setupMapLayers = () => {
-  if (!mapRef.value) return
-
-  const sourceName = 'posts'
-
-  if (mapRef.value.getSource(sourceName)) {
+const ensureRegionHighlightLayers = () => {
+  if (!mapRef.value) {
     return
   }
 
-  mapRef.value.addSource(sourceName, {
-    type: 'geojson',
-    data: collection.value,
-    cluster: true,
-    clusterMaxZoom: 10,
-    clusterRadius: 16
-  })
+  const sourceName = 'region-highlight'
+  const beforeId = mapRef.value.getLayer('clusters') ? 'clusters' : undefined
+  const fillColor = isDark.value ? 'rgba(88, 199, 143, 0.12)' : 'rgba(22, 146, 95, 0.1)'
+  const outlineColor = isDark.value ? 'rgba(88, 199, 143, 0.78)' : 'rgba(22, 146, 95, 0.68)'
 
-  mapRef.value.addSource('selected-post', {
-    type: 'geojson',
-    data: emptyCollection
-  })
+  if (!mapRef.value.getSource(sourceName)) {
+    mapRef.value.addSource(sourceName, {
+      type: 'geojson',
+      data: regionHighlightCollection.value
+    })
+  }
 
-  // Theme-aware pin colors (green palette)
+  if (!mapRef.value.getLayer('region-highlight-fill')) {
+    mapRef.value.addLayer({
+      id: 'region-highlight-fill',
+      type: 'fill',
+      source: sourceName,
+      paint: {
+        'fill-color': fillColor,
+        'fill-opacity': 1
+      }
+    }, beforeId)
+  }
+
+  if (!mapRef.value.getLayer('region-highlight-outline')) {
+    mapRef.value.addLayer({
+      id: 'region-highlight-outline',
+      type: 'line',
+      source: sourceName,
+      paint: {
+        'line-color': outlineColor,
+        'line-width': 2,
+        'line-opacity': 0.92
+      }
+    }, beforeId)
+  }
+}
+
+const ensurePostLayers = () => {
+  if (!mapRef.value) {
+    return
+  }
+
+  const sourceName = 'posts'
   const primaryColor = isDark.value ? '#58c78f' : '#16925f'
   const contrastColor = isDark.value ? '#0f120e' : '#f7f3ec'
 
-  mapRef.value.addLayer({
-    id: 'clusters',
-    type: 'circle',
-    source: sourceName,
-    filter: ['has', 'point_count'],
-    paint: {
-      'circle-radius': [
-        'interpolate',
-        ['linear'],
-        ['get', 'point_count'],
-        1, 11,
-        8, 18,
-        25, 28,
-        70, 40,
-        160, 54
-      ],
-      'circle-color': primaryColor,
-      'circle-stroke-width': 2,
-      'circle-stroke-color': contrastColor
-    }
-  })
+  if (!mapRef.value.getSource(sourceName)) {
+    mapRef.value.addSource(sourceName, {
+      type: 'geojson',
+      data: collection.value,
+      cluster: true,
+      clusterMaxZoom: 10,
+      clusterRadius: 16
+    })
+  }
 
-  mapRef.value.addLayer({
-    id: 'cluster-count',
-    type: 'symbol',
-    source: sourceName,
-    filter: ['has', 'point_count'],
-    layout: {
-      'text-field': ['get', 'point_count_abbreviated'],
-      'text-size': 12
-    },
-    paint: {
-      'text-color': contrastColor
-    }
-  })
+  if (!mapRef.value.getSource('selected-post')) {
+    mapRef.value.addSource('selected-post', {
+      type: 'geojson',
+      data: emptyCollection
+    })
+  }
 
-  mapRef.value.addLayer({
-    id: 'unclustered-point',
-    type: 'circle',
-    source: sourceName,
-    filter: ['!', ['has', 'point_count']],
-    paint: {
-      'circle-radius': 7,
-      'circle-color': primaryColor,
-      'circle-stroke-width': 2,
-      'circle-stroke-color': contrastColor
-    }
-  })
+  if (!mapRef.value.getLayer('clusters')) {
+    mapRef.value.addLayer({
+      id: 'clusters',
+      type: 'circle',
+      source: sourceName,
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['get', 'point_count'],
+          1, 11,
+          8, 18,
+          25, 28,
+          70, 40,
+          160, 54
+        ],
+        'circle-color': primaryColor,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': contrastColor
+      }
+    })
+  }
 
-  mapRef.value.addLayer({
-    id: 'selected-post-ring',
-    type: 'circle',
-    source: 'selected-post',
-    paint: {
-      'circle-radius': 16,
-      'circle-color': isDark.value ? 'rgba(88, 199, 143, 0.24)' : 'rgba(22, 146, 95, 0.2)',
-      'circle-stroke-width': 3,
-      'circle-stroke-color': primaryColor
-    }
-  })
+  if (!mapRef.value.getLayer('cluster-count')) {
+    mapRef.value.addLayer({
+      id: 'cluster-count',
+      type: 'symbol',
+      source: sourceName,
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-size': 12
+      },
+      paint: {
+        'text-color': contrastColor
+      }
+    })
+  }
 
-  mapRef.value.addLayer({
-    id: 'selected-post-core',
-    type: 'circle',
-    source: 'selected-post',
-    paint: {
-      'circle-radius': 8,
-      'circle-color': primaryColor,
-      'circle-stroke-width': 2,
-      'circle-stroke-color': contrastColor
+  if (!mapRef.value.getLayer('unclustered-point')) {
+    mapRef.value.addLayer({
+      id: 'unclustered-point',
+      type: 'circle',
+      source: sourceName,
+      filter: ['!', ['has', 'point_count']],
+      paint: {
+        'circle-radius': 7,
+        'circle-color': primaryColor,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': contrastColor
+      }
+    })
+  }
+
+  if (!mapRef.value.getLayer('selected-post-ring')) {
+    mapRef.value.addLayer({
+      id: 'selected-post-ring',
+      type: 'circle',
+      source: 'selected-post',
+      paint: {
+        'circle-radius': 16,
+        'circle-color': isDark.value ? 'rgba(88, 199, 143, 0.24)' : 'rgba(22, 146, 95, 0.2)',
+        'circle-stroke-width': 3,
+        'circle-stroke-color': primaryColor
+      }
+    })
+  }
+
+  if (!mapRef.value.getLayer('selected-post-core')) {
+    mapRef.value.addLayer({
+      id: 'selected-post-core',
+      type: 'circle',
+      source: 'selected-post',
+      paint: {
+        'circle-radius': 8,
+        'circle-color': primaryColor,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': contrastColor
+      }
+    })
+  }
+}
+
+const setupMapLayers = () => {
+  ensureRegionHighlightLayers()
+  ensurePostLayers()
+}
+
+const loadRegionHighlight = async (scope: RegionScope | null) => {
+  const currentSequence = ++regionHighlightSequence
+  const scopeKey = getRegionScopeKey(scope)
+
+  if (!scope || !scopeKey) {
+    clearRegionHighlightSource()
+    return
+  }
+
+  pendingRegionFitKey = scopeKey
+
+  try {
+    const regionGeometry = await getRegionGeometry(scope)
+    if (currentSequence !== regionHighlightSequence) {
+      return
     }
-  })
+
+    activeRegionBounds.value = regionGeometry.bbox
+    regionHighlightCollection.value = buildRegionHighlightCollection(scopeKey, regionGeometry.geometry)
+    syncRegionHighlightSource()
+
+    if (!regionGeometry.bbox) {
+      pendingRegionFitKey = null
+      return
+    }
+
+    fitPendingRegionBounds()
+  } catch {
+    if (currentSequence !== regionHighlightSequence) {
+      return
+    }
+
+    clearRegionHighlightSource()
+  }
 }
 
 const applyPoliticalLabels = () => {
@@ -400,15 +616,17 @@ const applyPoliticalLabels = () => {
 }
 
 watch(isDark, (dark) => {
-  if (!mapRef.value) return
-  
+  if (!mapRef.value) {
+    return
+  }
+
   const style = dark ? MAP_DARK_STYLE_URL : (config.public.mapStyleUrl || MAP_DEFAULT_STYLE_URL)
   mapRef.value.setStyle(style)
-  
-  // setStyle removes all custom sources and layers, we must re-add them after the style is fully loaded
+
   mapRef.value.once('style.load', () => {
     applyPoliticalLabels()
     setupMapLayers()
+    syncRegionHighlightSource()
     syncSelectionSource()
   })
 })
@@ -506,6 +724,8 @@ onMounted(async () => {
       })
 
       syncSelectionSource()
+      syncRegionHighlightSource()
+      fitPendingRegionBounds()
 
       if (props.selectedPostId) {
         void focusSelectedPost(props.selectedPostId)
@@ -528,10 +748,23 @@ watch(
 )
 
 watch(
+  () => [
+    props.highlightRegionScope?.countryName || '',
+    props.highlightRegionScope?.regionName || '',
+    props.highlightRegionScope?.cityName || ''
+  ],
+  () => {
+    void loadRegionHighlight(props.highlightRegionScope)
+  },
+  { immediate: true }
+)
+
+watch(
   () => locale.value,
   () => {
     applyPoliticalLabels()
     syncSelectionSource()
+    syncRegionHighlightSource()
   }
 )
 

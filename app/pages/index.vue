@@ -50,6 +50,8 @@ const workbenchState = computed(() => resolveWorkbenchState(route.query))
 const currentPanel = computed(() => workbenchState.value.panel)
 const selectedPostId = computed(() => workbenchState.value.postId)
 const selectedUsername = computed(() => workbenchState.value.username)
+const selectedRegionScope = computed(() => workbenchState.value.regionScope)
+const selectedRegionSort = computed(() => workbenchState.value.regionSort)
 const nextPath = computed(() => workbenchState.value.nextPath)
 const submitPath = computed(() => router.resolve(createWorkbenchLocation('submit')).fullPath)
 const isDetailPanel = computed(() => currentPanel.value === 'post')
@@ -60,6 +62,14 @@ const panelKey = computed(() => {
     ? `${currentPanel.value}-${selectedPostId.value}`
     : currentPanel.value === 'user'
       ? `user-${selectedUsername.value}`
+    : currentPanel.value === 'region' && selectedRegionScope.value
+      ? [
+          'region',
+          selectedRegionScope.value.countryName || '',
+          selectedRegionScope.value.regionName,
+          selectedRegionScope.value.cityName || '',
+          selectedRegionSort.value
+        ].join('-')
     : currentPanel.value
 })
 
@@ -705,6 +715,12 @@ onBeforeUnmount(() => {
               :username="selectedUsername"
             />
 
+            <WorkbenchRegionPanel
+              v-else-if="currentPanel === 'region' && selectedRegionScope"
+              :scope="selectedRegionScope"
+              :sort="selectedRegionSort"
+            />
+
             <WorkbenchPostPanel
               v-else-if="currentPanel === 'post' && selectedPostId"
               :post-id="selectedPostId"
@@ -719,6 +735,7 @@ onBeforeUnmount(() => {
     <section class="workbench-map-shell">
       <WorldMap
         :selected-post-id="selectedPostId"
+        :highlight-region-scope="currentPanel === 'region' ? selectedRegionScope : null"
         @select-post="handleMarkerSelection"
       />
     </section>
