@@ -1,3 +1,4 @@
+import { getRequestURL } from 'h3'
 import type { H3Event } from 'h3'
 import { layers, namedFlavor } from '~~/vendor/protomapsBasemaps.mjs'
 import type { MapStyleTheme } from '~~/shared/mapStyle'
@@ -7,6 +8,13 @@ const MAP_ASSET_BASE_PATH = '/map-assets'
 const MAP_SOURCE_NAME = 'protomaps'
 const MAP_ATTRIBUTION =
   '<a href="https://github.com/protomaps/basemaps">Protomaps</a> &copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+
+const toAbsoluteMapAssetUrl = (event: H3Event, path: string) => {
+  const requestUrl = getRequestURL(event)
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+
+  return `${requestUrl.origin}${normalizedPath}`
+}
 
 export const buildHostedMapStyle = (
   event: H3Event,
@@ -28,8 +36,8 @@ export const buildHostedMapStyle = (
 
   return {
     version: 8,
-    glyphs: `${MAP_ASSET_BASE_PATH}/fonts/{fontstack}/{range}.pbf`,
-    sprite: `${MAP_ASSET_BASE_PATH}/sprites/v4/${flavorName}`,
+    glyphs: toAbsoluteMapAssetUrl(event, `${MAP_ASSET_BASE_PATH}/fonts/{fontstack}/{range}.pbf`),
+    sprite: toAbsoluteMapAssetUrl(event, `${MAP_ASSET_BASE_PATH}/sprites/v4/${flavorName}`),
     sources: {
       [MAP_SOURCE_NAME]: {
         type: 'vector',

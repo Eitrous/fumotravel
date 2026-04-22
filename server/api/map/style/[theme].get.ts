@@ -15,7 +15,7 @@ export default defineEventHandler((event) => {
   const query = getQuery(event)
   const lang = typeof query.lang === 'string' ? query.lang : null
 
-  setHeader(event, 'Cache-Control', 'public, max-age=3600, s-maxage=3600')
+  setHeader(event, 'Cache-Control', 'no-store, max-age=0')
 
   return buildHostedMapStyle(event, theme, lang)
 })

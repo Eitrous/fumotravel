@@ -3,6 +3,7 @@ import { MAP_DARK_STYLE_URL, MAP_DEFAULT_STYLE_URL } from '~~/shared/fumo'
 export type MapStyleTheme = 'light' | 'dark'
 
 const ABSOLUTE_URL_PATTERN = /^[a-zA-Z][a-zA-Z\d+\-.]*:/
+const MAP_STYLE_REVISION = '20260422-1'
 
 export const isMapStyleTheme = (value: string): value is MapStyleTheme => {
   return value === 'light' || value === 'dark'
@@ -57,5 +58,9 @@ export const resolveHostedMapStyleUrl = (options: {
     ? (options.darkStyleUrl?.trim() || MAP_DARK_STYLE_URL)
     : (options.lightStyleUrl?.trim() || MAP_DEFAULT_STYLE_URL)
 
-  return withQueryParameter(baseUrl, 'lang', normalizeMapStyleLanguage(options.locale))
+  return withQueryParameter(
+    withQueryParameter(baseUrl, 'lang', normalizeMapStyleLanguage(options.locale)),
+    'v',
+    MAP_STYLE_REVISION
+  )
 }

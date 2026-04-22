@@ -8,7 +8,12 @@ const TAIWAN_COUNTRY_MATCH_FILTER: unknown[] = [
   ['==', 'country_code_iso3166_1_alpha_2', TAIWAN_ISO_A2],
   ['==', 'wikidata', TAIWAN_WIKIDATA_ID]
 ]
-const TAIWAN_EXCLUDE_FILTER: unknown[] = ['!', TAIWAN_COUNTRY_MATCH_FILTER]
+const TAIWAN_EXCLUDE_FILTER: unknown[] = [
+  'all',
+  ['!=', 'iso_a2', TAIWAN_ISO_A2],
+  ['!=', 'country_code_iso3166_1_alpha_2', TAIWAN_ISO_A2],
+  ['!=', 'wikidata', TAIWAN_WIKIDATA_ID]
+]
 const PLACE_SOURCE_LAYERS = ['place', 'places']
 
 export const TAIWAN_PROVINCE_LAYER_ID = 'fumo-political-taiwan-province-label'
@@ -109,7 +114,21 @@ const hasTaiwanExcludeCondition = (filter: unknown): boolean => {
     return false
   }
 
-  if (filter[0] === '!' && filter.length > 1 && isTaiwanCountryCondition(filter[1])) {
+  if (
+    filter[0] === 'all'
+    && filter.some((item) => (
+      isArray(item)
+      && (
+        (item[0] === '!=' && item[1] === 'iso_a2' && item[2] === TAIWAN_ISO_A2)
+        || (
+          item[0] === '!='
+          && item[1] === 'country_code_iso3166_1_alpha_2'
+          && item[2] === TAIWAN_ISO_A2
+        )
+        || (item[0] === '!=' && item[1] === 'wikidata' && item[2] === TAIWAN_WIKIDATA_ID)
+      )
+    ))
+  ) {
     return true
   }
 
