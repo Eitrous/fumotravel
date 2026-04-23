@@ -472,6 +472,7 @@ const ensurePostLayers = () => {
   const sourceName = 'posts'
   const primaryColor = isDark.value ? '#58c78f' : '#16925f'
   const contrastColor = isDark.value ? '#0f120e' : '#f7f3ec'
+  const activeHaloColor = isDark.value ? 'rgba(88, 199, 143, 0.24)' : 'rgba(22, 146, 95, 0.2)'
 
   if (!mapRef.value.getSource(sourceName)) {
     mapRef.value.addSource(sourceName, {
@@ -553,7 +554,7 @@ const ensurePostLayers = () => {
       source: 'selected-post',
       paint: {
         'circle-radius': 16,
-        'circle-color': isDark.value ? 'rgba(88, 199, 143, 0.24)' : 'rgba(22, 146, 95, 0.2)',
+        'circle-color': activeHaloColor,
         'circle-stroke-width': 3,
         'circle-stroke-color': primaryColor
       }
@@ -770,6 +771,7 @@ watch(
   () => locale.value,
   () => {
     applyPoliticalLabels()
+    void loadRegionHighlight(props.highlightRegionScope)
     syncSelectionSource()
     syncRegionHighlightSource()
   }

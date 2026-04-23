@@ -2,17 +2,30 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 
 const TAIWAN_ISO_A2 = 'TW'
 const TAIWAN_WIKIDATA_ID = 'Q865'
+const TAIWAN_ENGLISH_NAME = 'Taiwan'
+const TAIWAN_HANS_NAME = '台湾'
+const TAIWAN_HANT_NAME = '臺灣'
 const TAIWAN_COUNTRY_MATCH_FILTER: unknown[] = [
   'any',
   ['==', 'iso_a2', TAIWAN_ISO_A2],
   ['==', 'country_code_iso3166_1_alpha_2', TAIWAN_ISO_A2],
-  ['==', 'wikidata', TAIWAN_WIKIDATA_ID]
+  ['==', 'wikidata', TAIWAN_WIKIDATA_ID],
+  ['==', 'name:en', TAIWAN_ENGLISH_NAME],
+  ['==', 'name:zh-Hans', TAIWAN_HANS_NAME],
+  ['==', 'name:zh-Hant', TAIWAN_HANT_NAME],
+  ['==', 'name:ja', TAIWAN_HANS_NAME],
+  ['in', 'name', TAIWAN_ENGLISH_NAME, TAIWAN_HANS_NAME, TAIWAN_HANT_NAME]
 ]
 const TAIWAN_EXCLUDE_FILTER: unknown[] = [
   'all',
   ['!=', 'iso_a2', TAIWAN_ISO_A2],
   ['!=', 'country_code_iso3166_1_alpha_2', TAIWAN_ISO_A2],
-  ['!=', 'wikidata', TAIWAN_WIKIDATA_ID]
+  ['!=', 'wikidata', TAIWAN_WIKIDATA_ID],
+  ['!=', 'name:en', TAIWAN_ENGLISH_NAME],
+  ['!=', 'name:zh-Hans', TAIWAN_HANS_NAME],
+  ['!=', 'name:zh-Hant', TAIWAN_HANT_NAME],
+  ['!=', 'name:ja', TAIWAN_HANS_NAME],
+  ['!in', 'name', TAIWAN_ENGLISH_NAME, TAIWAN_HANS_NAME, TAIWAN_HANT_NAME]
 ]
 const PLACE_SOURCE_LAYERS = ['place', 'places']
 
@@ -101,7 +114,23 @@ const isTaiwanCountryCondition = (filter: unknown): boolean => {
       (filter[1] === 'iso_a2' && filter[2] === TAIWAN_ISO_A2)
       || (filter[1] === 'country_code_iso3166_1_alpha_2' && filter[2] === TAIWAN_ISO_A2)
       || (filter[1] === 'wikidata' && filter[2] === TAIWAN_WIKIDATA_ID)
+      || (filter[1] === 'name:en' && filter[2] === TAIWAN_ENGLISH_NAME)
+      || (filter[1] === 'name:zh-Hans' && filter[2] === TAIWAN_HANS_NAME)
+      || (filter[1] === 'name:zh-Hant' && filter[2] === TAIWAN_HANT_NAME)
+      || (filter[1] === 'name:ja' && filter[2] === TAIWAN_HANS_NAME)
     )
+  ) {
+    return true
+  }
+
+  if (
+    filter[0] === 'in'
+    && filter[1] === 'name'
+    && filter.slice(2).some((value) => (
+      value === TAIWAN_ENGLISH_NAME
+      || value === TAIWAN_HANS_NAME
+      || value === TAIWAN_HANT_NAME
+    ))
   ) {
     return true
   }
@@ -126,6 +155,19 @@ const hasTaiwanExcludeCondition = (filter: unknown): boolean => {
           && item[2] === TAIWAN_ISO_A2
         )
         || (item[0] === '!=' && item[1] === 'wikidata' && item[2] === TAIWAN_WIKIDATA_ID)
+        || (item[0] === '!=' && item[1] === 'name:en' && item[2] === TAIWAN_ENGLISH_NAME)
+        || (item[0] === '!=' && item[1] === 'name:zh-Hans' && item[2] === TAIWAN_HANS_NAME)
+        || (item[0] === '!=' && item[1] === 'name:zh-Hant' && item[2] === TAIWAN_HANT_NAME)
+        || (item[0] === '!=' && item[1] === 'name:ja' && item[2] === TAIWAN_HANS_NAME)
+        || (
+          item[0] === '!in'
+          && item[1] === 'name'
+          && item.slice(2).some((value) => (
+            value === TAIWAN_ENGLISH_NAME
+            || value === TAIWAN_HANS_NAME
+            || value === TAIWAN_HANT_NAME
+          ))
+        )
       )
     ))
   ) {
@@ -258,11 +300,6 @@ export const updateTaiwanProvinceLabel = (map: MapLibreMap, label: string) => {
 }
 
 export const applyTaiwanProvinceLabelPolicy = (map: MapLibreMap, label: string) => {
-  if (map.getLayer(TAIWAN_PROVINCE_LAYER_ID)) {
-    updateTaiwanProvinceLabel(map, label)
-    return
-  }
-
   const styleLayers = getStyleLayers(map)
   if (!styleLayers.length) {
     return
@@ -270,11 +307,19 @@ export const applyTaiwanProvinceLabelPolicy = (map: MapLibreMap, label: string) 
 
   const countryLayers = findCountryLabelLayers(styleLayers)
   if (!countryLayers.length) {
+    if (map.getLayer(TAIWAN_PROVINCE_LAYER_ID)) {
+      updateTaiwanProvinceLabel(map, label)
+    }
     warnOnce('country-layers-missing', '[map political labels] Country label layers not found in current style')
     return
   }
 
   applyCountryLayerFilters(map, countryLayers)
+
+  if (map.getLayer(TAIWAN_PROVINCE_LAYER_ID)) {
+    updateTaiwanProvinceLabel(map, label)
+    return
+  }
 
   const stateLayer = findStateLabelLayer(styleLayers)
   const targetLayer = createTaiwanProvinceLayer(countryLayers[0], stateLayer, label)
