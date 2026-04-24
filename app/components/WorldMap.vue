@@ -52,7 +52,8 @@ useMapResourceHints()
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<MapLibreMap | null>(null)
 const mapLoadingRequests = ref(0)
-const isMapLoading = computed(() => mapLoadingRequests.value > 0)
+const isMapIdle = ref(false)
+const isMapLoading = computed(() => mapLoadingRequests.value > 0 || !isMapIdle.value)
 const taiwanProvinceLabel = computed(() => t('map.taiwanProvinceLabel'))
 const collection = shallowRef<PublicMapPointCollection>({
   type: 'FeatureCollection',
@@ -263,6 +264,14 @@ const finishMapLoading = () => {
   mapLoadingRequests.value = Math.max(0, mapLoadingRequests.value - 1)
 }
 
+const markMapBusy = () => {
+  isMapIdle.value = false
+}
+
+const markMapIdle = () => {
+  isMapIdle.value = true
+}
+
 const getFeaturePostId = (raw: Record<string, unknown> | null | undefined) => {
   const id = Number(raw?.id)
   return Number.isFinite(id) ? id : null
@@ -431,7 +440,7 @@ const isAbortError = (error: unknown) => {
   return error instanceof Error && error.name === 'AbortError'
 }
 
-const refreshSource = async () => {
+const refreshSource = async (options: { loadingStarted?: boolean } = {}) => {
   if (!mapRef.value) {
     return
   }
@@ -451,7 +460,9 @@ const refreshSource = async () => {
   const abortController = new AbortController()
   mapPostsAbortController = abortController
 
-  startMapLoading()
+  if (!options.loadingStarted) {
+    startMapLoading()
+  }
   try {
     const geojson = await fetchGeoJson(requestBounds, abortController.signal)
     const nextCollection = geojson || emptyCollection
@@ -651,6 +662,14 @@ const bindMapInteractions = () => {
 
   mapInteractionsBound = true
 
+  mapRef.value.on('idle', () => {
+    markMapIdle()
+  })
+
+  mapRef.value.on('movestart', () => {
+    markMapBusy()
+  })
+
   mapRef.value.on('mouseenter', 'clusters', () => {
     mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
   })
@@ -718,8 +737,11 @@ const scheduleInitialSourceLoad = () => {
     return
   }
 
+  markMapBusy()
+  startMapLoading()
+
   window.requestAnimationFrame(() => {
-    void refreshSource().finally(() => {
+    void refreshSource({ loadingStarted: true }).finally(() => {
       initialSourceLoaded = true
     })
   })
@@ -736,6 +758,7 @@ const loadRegionHighlight = async (scope: RegionScope | null) => {
 
   pendingRegionFitKey = scopeKey
 
+  startMapLoading()
   try {
     const regionGeometry = await getRegionGeometry(scope)
     if (currentSequence !== regionHighlightSequence) {
@@ -758,6 +781,8 @@ const loadRegionHighlight = async (scope: RegionScope | null) => {
     }
 
     clearRegionHighlightSource()
+  } finally {
+    finishMapLoading()
   }
 }
 
@@ -775,20 +800,26 @@ watch([isDark, locale], async ([dark]) => {
   }
 
   const currentSequence = ++mapStyleSequence
-  const style = await fetchHostedMapStyle(getMapStyleUrl(dark))
+  markMapBusy()
+  startMapLoading()
+  try {
+    const style = await fetchHostedMapStyle(getMapStyleUrl(dark))
 
-  if (currentSequence !== mapStyleSequence || !mapRef.value) {
-    return
+    if (currentSequence !== mapStyleSequence || !mapRef.value) {
+      return
+    }
+
+    mapRef.value.setStyle(style)
+
+    mapRef.value.once('style.load', () => {
+      applyPoliticalLabels()
+      setupMapLayers()
+      syncRegionHighlightSource()
+      syncSelectionSource()
+    })
+  } finally {
+    finishMapLoading()
   }
-
-  mapRef.value.setStyle(style)
-
-  mapRef.value.once('style.load', () => {
-    applyPoliticalLabels()
-    setupMapLayers()
-    syncRegionHighlightSource()
-    syncSelectionSource()
-  })
 })
 
 onMounted(async () => {
@@ -796,6 +827,7 @@ onMounted(async () => {
     return
   }
 
+  markMapBusy()
   startMapLoading()
   try {
     maplibregl = await import('maplibre-gl')
@@ -809,24 +841,23 @@ onMounted(async () => {
       zoom: MAP_DEFAULT_ZOOM
     })
   } catch {
+    markMapIdle()
     finishMapLoading()
     return
   }
 
-  mapRef.value.on('load', () => {
-    try {
-      applyPoliticalLabels()
-      setupMapLayers()
-      bindMapInteractions()
-      syncSelectionSource()
-      syncRegionHighlightSource()
-      fitPendingRegionBounds()
+  finishMapLoading()
 
-      if (props.selectedPostId) {
-        void focusSelectedPost(props.selectedPostId)
-      }
-    } finally {
-      finishMapLoading()
+  mapRef.value.on('load', () => {
+    applyPoliticalLabels()
+    setupMapLayers()
+    bindMapInteractions()
+    syncSelectionSource()
+    syncRegionHighlightSource()
+    fitPendingRegionBounds()
+
+    if (props.selectedPostId) {
+      void focusSelectedPost(props.selectedPostId)
     }
 
     scheduleInitialSourceLoad()
@@ -871,6 +902,7 @@ onBeforeUnmount(() => {
   refreshSourceSequence += 1
   mapPostsAbortController?.abort()
   mapPostsAbortController = null
+  markMapIdle()
   mapRef.value?.remove()
 })
 </script>

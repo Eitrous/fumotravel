@@ -22,19 +22,25 @@ function Invoke-AwsCli {
     [switch]$AsJson
   )
 
-  $output = & aws @Arguments 2>&1
-  $exitCode = $LASTEXITCODE
-  $text = ($output | ForEach-Object { "$_" }) -join [Environment]::NewLine
+  $process = Start-AwsProcess -Arguments $Arguments
+  $process.WaitForExit()
 
-  if ($exitCode -ne 0) {
-    $message = if ([string]::IsNullOrWhiteSpace($text)) {
-      "AWS CLI command failed with exit code $exitCode."
+  $stdout = $process.StandardOutput.ReadToEnd()
+  $stderr = $process.StandardError.ReadToEnd()
+
+  if ($process.ExitCode -ne 0) {
+    $message = if (-not [string]::IsNullOrWhiteSpace($stderr)) {
+      $stderr.Trim()
+    } elseif (-not [string]::IsNullOrWhiteSpace($stdout)) {
+      $stdout.Trim()
     } else {
-      $text.Trim()
+      "AWS CLI command failed with exit code $($process.ExitCode)."
     }
 
     throw $message
   }
+
+  $text = $stdout.Trim()
 
   if (-not $AsJson) {
     return $text
@@ -185,7 +191,7 @@ Write-Host "Content-Type: $contentType"
 if ($size -le $SingleCopyLimit) {
   Write-Host "Using single copy-object..."
 
-  [void](Invoke-AwsCli -Arguments @(
+  $singleCopyProcess = Start-AwsProcess -Arguments @(
     "s3api", "copy-object",
     "--bucket", $Bucket,
     "--key", $Key,
@@ -199,7 +205,8 @@ if ($size -le $SingleCopyLimit) {
     "--no-cli-pager",
     "--cli-read-timeout", "$CliReadTimeoutSeconds",
     "--cli-connect-timeout", "$CliConnectTimeoutSeconds"
-  ) -AsJson)
+  )
+  [void](Wait-AwsProcessWithStatus -Process $singleCopyProcess -StatusText "single copy running")
 
   Write-Host "Single copy completed."
   return
@@ -285,10 +292,23 @@ try {
   }
 
   $completeJsonPath = Join-Path $env:TEMP "r2-complete-multipart-upload.json"
-  @{ Parts = @($parts) } | ConvertTo-Json -Depth 4 | Set-Content -Path $completeJsonPath -Encoding utf8
+  $partsPayload = @()
+  foreach ($part in $parts) {
+    $partsPayload += [pscustomobject]@{
+      ETag = [string]$part.ETag
+      PartNumber = [int]$part.PartNumber
+    }
+  }
+
+  $completePayload = [pscustomobject]@{
+    Parts = $partsPayload
+  }
+
+  $completeJson = $completePayload | ConvertTo-Json -Depth 4
+  Set-Content -Path $completeJsonPath -Value $completeJson -Encoding utf8
 
   Write-Host "Completing multipart upload..."
-  [void](Invoke-AwsCli -Arguments @(
+  $completeProcess = Start-AwsProcess -Arguments @(
     "s3api", "complete-multipart-upload",
     "--bucket", $Bucket,
     "--key", $Key,
@@ -300,7 +320,8 @@ try {
     "--no-cli-pager",
     "--cli-read-timeout", "$CliReadTimeoutSeconds",
     "--cli-connect-timeout", "$CliConnectTimeoutSeconds"
-  ) -AsJson)
+  )
+  [void](Wait-AwsProcessWithStatus -Process $completeProcess -StatusText "complete-multipart-upload running")
 
   Write-Host "Multipart copy completed."
 } catch {

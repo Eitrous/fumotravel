@@ -27,3 +27,4 @@ logs
 tofix.md
 .codex/
 public/icon-dark.png
+scripts/r2-refresh-pmtiles-cache.ps1

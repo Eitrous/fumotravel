@@ -96,6 +96,7 @@ const leadingAction = computed(() => {
 
 const workbenchSidebarClass = computed(() => ({
   [`is-${mobileDrawerState.value}`]: isMobile.value,
+  'is-panel-detail': isMobile.value && isDetailPanel.value,
   'is-dragging': mobileDrawerDragging.value
 }))
 
@@ -297,10 +298,9 @@ async function handleMarkerSelection(postId: number) {
   })
 }
 
-async function closeMobileSheet() {
+function closeMobileSheet() {
   mobileDrawerState.value = 'peek'
   resetMobileDrawerDrag()
-  await navigateTo(createWorkbenchLocation('info'))
 }
 
 function revealMobileDrawer() {
@@ -366,16 +366,61 @@ const shouldStartMobileDrawerDrag = (event: PointerEvent) => {
   return event.target instanceof Element && Boolean(event.target.closest('.workbench-sidebar__chrome'))
 }
 
+const clampValue = (value: number, min: number, max: number) => {
+  return Math.max(min, Math.min(max, value))
+}
+
+const getMobileViewportHeight = () => {
+  if (typeof window === 'undefined') {
+    return 0
+  }
+
+  return window.visualViewport?.height ?? window.innerHeight
+}
+
+const getMobileViewportWidth = () => {
+  if (typeof window === 'undefined') {
+    return 0
+  }
+
+  return window.visualViewport?.width ?? window.innerWidth
+}
+
+const getMobileDrawerMetrics = () => {
+  const viewportHeight = Math.max(0, getMobileViewportHeight())
+  const viewportWidth = Math.max(0, getMobileViewportWidth())
+  const isCompactViewport = viewportWidth <= 720
+  const peekHeight = isCompactViewport
+    ? clampValue(viewportWidth * 0.24, 88, 108)
+    : clampValue(viewportWidth * 0.22, 84, 112)
+  const workbenchHeight = isCompactViewport
+    ? viewportHeight * 0.84
+    : Math.min(viewportHeight * 0.84, 780)
+  const detailHeight = Math.max(peekHeight, viewportHeight - 12)
+
+  return {
+    peekHeight,
+    workbenchHeight: Math.max(peekHeight, workbenchHeight),
+    detailHeight
+  }
+}
+
 const clampMobileDrawerDragOffset = (deltaY: number) => {
+  const { peekHeight, workbenchHeight, detailHeight } = getMobileDrawerMetrics()
+
   if (mobileDrawerPointerStartState === 'peek') {
-    return Math.max(-220, Math.min(28, deltaY))
+    const targetHeight = mobileDrawerStateForPanel(currentPanel.value) === 'detail'
+      ? detailHeight
+      : workbenchHeight
+
+    return clampValue(deltaY, peekHeight - targetHeight, 28)
   }
 
   if (mobileDrawerPointerStartState === 'detail') {
-    return Math.max(-18, Math.min(260, deltaY))
+    return clampValue(deltaY, -18, detailHeight - peekHeight)
   }
 
-  return Math.max(-56, Math.min(220, deltaY))
+  return clampValue(deltaY, -56, workbenchHeight - peekHeight)
 }
 
 const suppressMobileDrawerClick = () => {
