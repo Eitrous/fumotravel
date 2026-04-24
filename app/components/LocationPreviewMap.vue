@@ -22,6 +22,9 @@ const props = withDefaults(defineProps<{
 const { t, locale } = useI18n()
 const { isDark } = useTheme()
 const config = useRuntimeConfig()
+useMapResourceHints()
+
+const { targetRef: stageEl, isActivated } = useDeferredVisibility()
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<import('maplibre-gl').Map | null>(null)
 const taiwanProvinceLabel = computed(() => t('map.taiwanProvinceLabel'))
@@ -29,6 +32,8 @@ const taiwanProvinceLabel = computed(() => t('map.taiwanProvinceLabel'))
 let maplibregl: typeof import('maplibre-gl') | null = null
 let publicMarker: Marker | null = null
 let exactMarker: Marker | null = null
+let mapInitPromise: Promise<void> | null = null
+let mapStyleSequence = 0
 
 const getMapStyleUrl = (dark = isDark.value) => {
   return resolveHostedMapStyleUrl({
@@ -131,12 +136,19 @@ const applyPoliticalLabels = () => {
   applyTaiwanProvinceLabelPolicy(mapRef.value, taiwanProvinceLabel.value)
 }
 
-watch([isDark, locale], ([dark]) => {
+watch([isDark, locale], async ([dark]) => {
   if (!mapRef.value) {
     return
   }
 
-  mapRef.value.setStyle(getMapStyleUrl(dark))
+  const currentSequence = ++mapStyleSequence
+  const style = await fetchHostedMapStyle(getMapStyleUrl(dark))
+
+  if (currentSequence !== mapStyleSequence || !mapRef.value) {
+    return
+  }
+
+  mapRef.value.setStyle(style)
 
   mapRef.value.once('style.load', () => {
     applyPoliticalLabels()
@@ -145,26 +157,55 @@ watch([isDark, locale], ([dark]) => {
   })
 })
 
-onMounted(async () => {
-  if (!mapEl.value) {
+const initializeMap = async () => {
+  if (!mapEl.value || mapRef.value) {
     return
   }
 
-  maplibregl = await import('maplibre-gl')
+  if (mapInitPromise) {
+    await mapInitPromise
+    return
+  }
 
-  mapRef.value = new maplibregl.Map({
-    container: mapEl.value,
-    style: getMapStyleUrl(),
-    center: MAP_DEFAULT_CENTER,
-    zoom: MAP_DEFAULT_ZOOM
+  mapInitPromise = (async () => {
+    maplibregl = maplibregl || await import('maplibre-gl')
+    await registerPmtilesProtocol(maplibregl)
+    const style = await fetchHostedMapStyle(getMapStyleUrl())
+
+    mapRef.value = new maplibregl.Map({
+      container: mapEl.value as HTMLDivElement,
+      style,
+      center: MAP_DEFAULT_CENTER,
+      zoom: MAP_DEFAULT_ZOOM
+    })
+
+    mapRef.value.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+    mapRef.value.on('load', () => {
+      applyPoliticalLabels()
+      syncMarkers()
+      fitBoundsToMarkers()
+    })
+  })().finally(() => {
+    mapInitPromise = null
   })
 
-  mapRef.value.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
-  mapRef.value.on('load', () => {
-    applyPoliticalLabels()
-    syncMarkers()
-    fitBoundsToMarkers()
-  })
+  await mapInitPromise
+}
+
+watch(isActivated, (active) => {
+  if (!active) {
+    return
+  }
+
+  void initializeMap()
+})
+
+onMounted(() => {
+  if (!isActivated.value) {
+    return
+  }
+
+  void initializeMap()
 })
 
 watch(
@@ -178,6 +219,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  mapStyleSequence += 1
   publicMarker?.remove()
   exactMarker?.remove()
   mapRef.value?.remove()
@@ -185,7 +227,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="picker-stage" :class="{ 'picker-stage--compact': compact }">
+  <div ref="stageEl" class="picker-stage" :class="{ 'picker-stage--compact': compact }">
     <div ref="mapEl" class="picker-canvas" />
   </div>
 </template>

@@ -53,6 +53,10 @@ const selectedPhotoUrl = computed(() => {
   return selectedPhoto.value?.imageUrl || null
 })
 
+const selectedPhotoPreviewUrl = computed(() => {
+  return selectedPhoto.value?.thumbUrl || selectedPhotoUrl.value
+})
+
 const hasMultiplePhotos = computed(() => displayPhotos.value.length > 1)
 const canGoPrevious = computed(() => selectedPhotoIndex.value > 0)
 const canGoNext = computed(() => selectedPhotoIndex.value < displayPhotos.value.length - 1)
@@ -426,9 +430,9 @@ onBeforeUnmount(() => {
         :class="{ 'is-loading': !heroImageReady && !heroImageFailed, 'is-ready': heroImageReady }"
       >
         <div
-          v-if="heroImageReady"
+          v-if="selectedPhotoPreviewUrl"
           class="workbench-detail-hero__backdrop"
-          :style="backgroundImageStyle(selectedPhotoUrl)"
+          :style="backgroundImageStyle(selectedPhotoPreviewUrl)"
           aria-hidden="true"
         />
         <div
@@ -455,6 +459,9 @@ onBeforeUnmount(() => {
           :class="{ 'is-ready': heroImageReady, 'is-zoomable': canOpenImageViewer }"
           :src="selectedPhotoUrl"
           :alt="post.title"
+          decoding="async"
+          fetchpriority="high"
+          loading="eager"
           role="button"
           :tabindex="canOpenImageViewer ? 0 : -1"
           :aria-label="t('post.openPhotoViewer')"
@@ -658,6 +665,8 @@ onBeforeUnmount(() => {
           :class="{ 'is-ready': viewerImageReady }"
           :src="selectedPhotoUrl"
           :alt="post.title"
+          decoding="async"
+          loading="eager"
           @load="handleViewerImageLoad"
           @error="handleViewerImageError"
         >

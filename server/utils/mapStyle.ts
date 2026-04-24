@@ -1,4 +1,3 @@
-import { getRequestURL } from 'h3'
 import type { H3Event } from 'h3'
 import { layers, namedFlavor } from '~~/vendor/protomapsBasemaps.mjs'
 import type { MapStyleTheme } from '~~/shared/mapStyle'
@@ -48,11 +47,32 @@ type MapStyleLayer = {
   [key: string]: unknown
 }
 
-const toAbsoluteMapAssetUrl = (event: H3Event, path: string) => {
-  const requestUrl = getRequestURL(event)
+const firstHeaderValue = (value: string | undefined) => {
+  return value?.split(',')[0]?.trim() || ''
+}
+
+const getRequestHeader = (event: H3Event, name: string) => {
+  const value = event.node.req.headers[name.toLowerCase()]
+  return Array.isArray(value) ? value[0] : value
+}
+
+const getRequestOrigin = (event: H3Event, fallbackOrigin: string) => {
+  const forwardedHost = firstHeaderValue(getRequestHeader(event, 'x-forwarded-host'))
+  const host = forwardedHost || firstHeaderValue(getRequestHeader(event, 'host'))
+  const forwardedProto = firstHeaderValue(getRequestHeader(event, 'x-forwarded-proto'))
+  const proto = forwardedProto || (import.meta.dev ? 'http' : 'https')
+
+  if (host) {
+    return `${proto}://${host}`
+  }
+
+  return fallbackOrigin
+}
+
+const toAbsoluteMapAssetUrl = (origin: string, path: string) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
 
-  return `${requestUrl.origin}${normalizedPath}`
+  return `${origin}${normalizedPath}`
 }
 
 const applyBuildingLayerOverrides = (styleLayers: MapStyleLayer[]) => {
@@ -78,6 +98,9 @@ export const buildHostedMapStyle = (
 ) => {
   const config = useRuntimeConfig(event)
   const pmtilesUrl = String(config.public.pmtilesUrl || '').trim()
+  const siteUrl = String(config.public.siteUrl || '').trim()
+  const fallbackOrigin = siteUrl ? new URL(siteUrl).origin : 'http://localhost:3000'
+  const assetOrigin = getRequestOrigin(event, fallbackOrigin)
 
   if (!pmtilesUrl) {
     throw createError({
@@ -116,8 +139,8 @@ export const buildHostedMapStyle = (
 
   return {
     version: 8,
-    glyphs: toAbsoluteMapAssetUrl(event, `${MAP_ASSET_BASE_PATH}/fonts/{fontstack}/{range}.pbf`),
-    sprite: toAbsoluteMapAssetUrl(event, `${MAP_ASSET_BASE_PATH}/sprites/v4/${spriteFlavorName}`),
+    glyphs: toAbsoluteMapAssetUrl(assetOrigin, `${MAP_ASSET_BASE_PATH}/fonts/{fontstack}/{range}.pbf`),
+    sprite: toAbsoluteMapAssetUrl(assetOrigin, `${MAP_ASSET_BASE_PATH}/sprites/v4/${spriteFlavorName}`),
     sources: {
       [MAP_SOURCE_NAME]: {
         type: 'vector',

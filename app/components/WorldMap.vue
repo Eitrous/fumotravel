@@ -2,12 +2,12 @@
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import type {
   GeoBounds,
-  PublicMapCollection,
-  PublicMapFeatureProperties,
+  PublicMapPointCollection,
   RegionScope
 } from '~~/shared/fumo'
 import {
   MAP_DEFAULT_CENTER,
+  MAP_FETCH_BOUNDS_GRID_SIZE,
   MAP_DEFAULT_ZOOM
 } from '~~/shared/fumo'
 import { resolveHostedMapStyleUrl } from '~~/shared/mapStyle'
@@ -47,12 +47,14 @@ const { isDark } = useTheme()
 const config = useRuntimeConfig()
 const { getPostDetail } = usePostDetailCache()
 const { getRegionGeometry } = useRegionGeometryCache()
+useMapResourceHints()
+
 const mapEl = ref<HTMLDivElement | null>(null)
 const mapRef = shallowRef<MapLibreMap | null>(null)
 const mapLoadingRequests = ref(0)
 const isMapLoading = computed(() => mapLoadingRequests.value > 0)
 const taiwanProvinceLabel = computed(() => t('map.taiwanProvinceLabel'))
-const collection = shallowRef<PublicMapCollection>({
+const collection = shallowRef<PublicMapPointCollection>({
   type: 'FeatureCollection',
   features: []
 })
@@ -74,7 +76,12 @@ const REGION_FIT_DURATION_MS = 720
 
 let selectedPostFocusSequence = 0
 let regionHighlightSequence = 0
+let refreshSourceSequence = 0
+let mapStyleSequence = 0
 let pendingRegionFitKey: string | null = null
+let mapInteractionsBound = false
+let initialSourceLoaded = false
+let mapPostsAbortController: AbortController | null = null
 
 const getMapStyleUrl = (dark = isDark.value) => {
   return resolveHostedMapStyleUrl({
@@ -85,12 +92,26 @@ const getMapStyleUrl = (dark = isDark.value) => {
   })
 }
 
-const emptyCollection: PublicMapCollection = {
+useHead(() => ({
+  link: [
+    {
+      key: 'map-style-preload',
+      rel: 'preload',
+      as: 'fetch',
+      href: getMapStyleUrl(),
+      crossorigin: ''
+    }
+  ]
+}))
+
+const emptyCollection: PublicMapPointCollection = {
   type: 'FeatureCollection',
   features: []
 }
 
 const clampLatitude = (lat: number) => Math.min(MAX_LATITUDE, Math.max(MIN_LATITUDE, lat))
+
+const clampLongitude = (lng: number) => Math.min(180, Math.max(-180, lng))
 
 const normalizeLongitude = (lng: number) => {
   return ((((lng + 180) % 360) + 360) % 360) - 180
@@ -178,6 +199,29 @@ const getExpandedViewportBounds = (): MapBoundsBox | null => {
   }
 }
 
+const roundDownToFetchGrid = (value: number) => {
+  return Math.floor(value / MAP_FETCH_BOUNDS_GRID_SIZE) * MAP_FETCH_BOUNDS_GRID_SIZE
+}
+
+const roundUpToFetchGrid = (value: number) => {
+  return Math.ceil(value / MAP_FETCH_BOUNDS_GRID_SIZE) * MAP_FETCH_BOUNDS_GRID_SIZE
+}
+
+const quantizeFetchBounds = (bounds: MapBoundsBox): MapBoundsBox => {
+  return {
+    west: bounds.coversWorld ? -180 : clampLongitude(roundDownToFetchGrid(bounds.west)),
+    south: clampLatitude(roundDownToFetchGrid(bounds.south)),
+    east: bounds.coversWorld ? 180 : clampLongitude(roundUpToFetchGrid(bounds.east)),
+    north: clampLatitude(roundUpToFetchGrid(bounds.north)),
+    coversWorld: bounds.coversWorld
+  }
+}
+
+const getRequestBounds = () => {
+  const expandedBounds = getExpandedViewportBounds()
+  return expandedBounds ? quantizeFetchBounds(expandedBounds) : null
+}
+
 const getLongitudeIntervals = (bounds: MapBoundsBox): Array<[number, number]> => {
   if (bounds.coversWorld || (bounds.west <= -180 && bounds.east >= 180)) {
     return [[-180, 180]]
@@ -219,15 +263,9 @@ const finishMapLoading = () => {
   mapLoadingRequests.value = Math.max(0, mapLoadingRequests.value - 1)
 }
 
-const normalizeProperties = (raw: Record<string, unknown>): PublicMapFeatureProperties => {
-  return {
-    id: Number(raw.id),
-    title: String(raw.title || t('map.untitledPost')),
-    placeName: raw.placeName ? String(raw.placeName) : null,
-    username: String(raw.username || 'unknown'),
-    privacyMode: raw.privacyMode === 'approx' ? 'approx' : 'exact',
-    capturedAt: raw.capturedAt ? String(raw.capturedAt) : null
-  }
+const getFeaturePostId = (raw: Record<string, unknown> | null | undefined) => {
+  const id = Number(raw?.id)
+  return Number.isFinite(id) ? id : null
 }
 
 const buildRegionHighlightCollection = (
@@ -255,8 +293,9 @@ const buildRegionHighlightCollection = (
   }
 }
 
-const fetchGeoJson = async (bounds: MapBoundsBox) => {
-  return await $fetch<PublicMapCollection>('/api/map/posts', {
+const fetchGeoJson = async (bounds: MapBoundsBox, signal?: AbortSignal) => {
+  return await $fetch<PublicMapPointCollection>('/api/map/posts', {
+    signal,
     query: {
       west: bounds.west,
       south: bounds.south,
@@ -388,6 +427,10 @@ const fitPendingRegionBounds = () => {
   pendingRegionFitKey = null
 }
 
+const isAbortError = (error: unknown) => {
+  return error instanceof Error && error.name === 'AbortError'
+}
+
 const refreshSource = async () => {
   if (!mapRef.value) {
     return
@@ -398,15 +441,28 @@ const refreshSource = async () => {
     return
   }
 
-  const requestBounds = getExpandedViewportBounds()
+  const requestBounds = getRequestBounds()
   if (!requestBounds) {
     return
   }
 
+  const currentSequence = ++refreshSourceSequence
+  mapPostsAbortController?.abort()
+  const abortController = new AbortController()
+  mapPostsAbortController = abortController
+
   startMapLoading()
   try {
-    const geojson = await fetchGeoJson(requestBounds)
+    const geojson = await fetchGeoJson(requestBounds, abortController.signal)
     const nextCollection = geojson || emptyCollection
+
+    if (
+      currentSequence !== refreshSourceSequence
+      || abortController.signal.aborted
+      || !mapRef.value
+    ) {
+      return
+    }
 
     loadedBounds.value = requestBounds
     collection.value = nextCollection
@@ -414,9 +470,16 @@ const refreshSource = async () => {
     const source = mapRef.value.getSource('posts') as GeoJSONSource | null
     source?.setData(nextCollection)
     syncSelectionSource()
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) {
+      return
+    }
+
     // Keep map interactive even if a fetch attempt fails.
   } finally {
+    if (mapPostsAbortController === abortController) {
+      mapPostsAbortController = null
+    }
     finishMapLoading()
   }
 }
@@ -581,6 +644,87 @@ const setupMapLayers = () => {
   ensurePostLayers()
 }
 
+const bindMapInteractions = () => {
+  if (!mapRef.value || mapInteractionsBound) {
+    return
+  }
+
+  mapInteractionsBound = true
+
+  mapRef.value.on('mouseenter', 'clusters', () => {
+    mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
+  })
+
+  mapRef.value.on('mouseleave', 'clusters', () => {
+    mapRef.value?.getCanvas().style.setProperty('cursor', '')
+  })
+
+  mapRef.value.on('mouseenter', 'unclustered-point', () => {
+    mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
+  })
+
+  mapRef.value.on('mouseleave', 'unclustered-point', () => {
+    mapRef.value?.getCanvas().style.setProperty('cursor', '')
+  })
+
+  mapRef.value.on('click', 'clusters', async (event) => {
+    const features = mapRef.value?.queryRenderedFeatures(event.point, {
+      layers: ['clusters']
+    })
+    const cluster = features?.[0]
+    const clusterId = cluster?.properties?.cluster_id
+
+    if (
+      clusterId == null
+      || !mapRef.value
+      || !cluster
+      || cluster.geometry.type !== 'Point'
+    ) {
+      return
+    }
+
+    const source = mapRef.value.getSource('posts') as GeoJSONSource
+    const zoom = await source.getClusterExpansionZoom(clusterId)
+    const coordinates = (cluster.geometry as GeoJSON.Point).coordinates as [number, number]
+
+    mapRef.value.easeTo({
+      center: coordinates,
+      zoom
+    })
+  })
+
+  mapRef.value.on('click', 'unclustered-point', (event) => {
+    const feature = event.features?.[0]
+    const postId = getFeaturePostId(feature?.properties as Record<string, unknown> | undefined)
+
+    if (!postId) {
+      return
+    }
+
+    emit('select-post', postId)
+  })
+
+  mapRef.value.on('moveend', () => {
+    if (!initialSourceLoaded) {
+      return
+    }
+
+    void refreshSource()
+  })
+}
+
+const scheduleInitialSourceLoad = () => {
+  if (!import.meta.client) {
+    return
+  }
+
+  window.requestAnimationFrame(() => {
+    void refreshSource().finally(() => {
+      initialSourceLoaded = true
+    })
+  })
+}
+
 const loadRegionHighlight = async (scope: RegionScope | null) => {
   const currentSequence = ++regionHighlightSequence
   const scopeKey = getRegionScopeKey(scope)
@@ -625,12 +769,19 @@ const applyPoliticalLabels = () => {
   applyTaiwanProvinceLabelPolicy(mapRef.value, taiwanProvinceLabel.value)
 }
 
-watch([isDark, locale], ([dark]) => {
+watch([isDark, locale], async ([dark]) => {
   if (!mapRef.value) {
     return
   }
 
-  mapRef.value.setStyle(getMapStyleUrl(dark))
+  const currentSequence = ++mapStyleSequence
+  const style = await fetchHostedMapStyle(getMapStyleUrl(dark))
+
+  if (currentSequence !== mapStyleSequence || !mapRef.value) {
+    return
+  }
+
+  mapRef.value.setStyle(style)
 
   mapRef.value.once('style.load', () => {
     applyPoliticalLabels()
@@ -648,10 +799,12 @@ onMounted(async () => {
   startMapLoading()
   try {
     maplibregl = await import('maplibre-gl')
+    await registerPmtilesProtocol(maplibregl)
+    const style = await fetchHostedMapStyle(getMapStyleUrl())
 
     mapRef.value = new maplibregl.Map({
       container: mapEl.value,
-      style: getMapStyleUrl(),
+      style,
       center: MAP_DEFAULT_CENTER,
       zoom: MAP_DEFAULT_ZOOM
     })
@@ -660,77 +813,11 @@ onMounted(async () => {
     return
   }
 
-  mapRef.value.on('load', async () => {
+  mapRef.value.on('load', () => {
     try {
-      const requestBounds = getExpandedViewportBounds()
-      const geojson = requestBounds ? await fetchGeoJson(requestBounds) : null
-      const nextCollection = geojson || emptyCollection
-
-      if (requestBounds) {
-        loadedBounds.value = requestBounds
-      }
-
-      collection.value = nextCollection
-
       applyPoliticalLabels()
       setupMapLayers()
-
-      mapRef.value?.on('mouseenter', 'clusters', () => {
-        mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
-      })
-
-      mapRef.value?.on('mouseleave', 'clusters', () => {
-        mapRef.value?.getCanvas().style.setProperty('cursor', '')
-      })
-
-      mapRef.value?.on('mouseenter', 'unclustered-point', () => {
-        mapRef.value?.getCanvas().style.setProperty('cursor', 'pointer')
-      })
-
-      mapRef.value?.on('mouseleave', 'unclustered-point', () => {
-        mapRef.value?.getCanvas().style.setProperty('cursor', '')
-      })
-
-      mapRef.value?.on('click', 'clusters', async (event) => {
-        const features = mapRef.value?.queryRenderedFeatures(event.point, {
-          layers: ['clusters']
-        })
-        const cluster = features?.[0]
-        const clusterId = cluster?.properties?.cluster_id
-
-        if (
-          clusterId == null
-          || !mapRef.value
-          || !cluster
-          || cluster.geometry.type !== 'Point'
-        ) {
-          return
-        }
-
-        const source = mapRef.value.getSource('posts') as GeoJSONSource
-        const zoom = await source.getClusterExpansionZoom(clusterId)
-        const coordinates = (cluster.geometry as GeoJSON.Point).coordinates as [number, number]
-
-        mapRef.value.easeTo({
-          center: coordinates,
-          zoom
-        })
-      })
-
-      mapRef.value?.on('click', 'unclustered-point', (event) => {
-        const feature = event.features?.[0]
-        if (!feature?.properties) {
-          return
-        }
-
-        const normalizedProps = normalizeProperties(feature.properties)
-        emit('select-post', normalizedProps.id)
-      })
-
-      mapRef.value?.on('moveend', () => {
-        void refreshSource()
-      })
-
+      bindMapInteractions()
       syncSelectionSource()
       syncRegionHighlightSource()
       fitPendingRegionBounds()
@@ -741,6 +828,8 @@ onMounted(async () => {
     } finally {
       finishMapLoading()
     }
+
+    scheduleInitialSourceLoad()
   })
 })
 
@@ -778,6 +867,10 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  mapStyleSequence += 1
+  refreshSourceSequence += 1
+  mapPostsAbortController?.abort()
+  mapPostsAbortController = null
   mapRef.value?.remove()
 })
 </script>

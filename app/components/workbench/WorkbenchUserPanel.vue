@@ -257,7 +257,13 @@ onMounted(() => {
       <div v-else-if="userPage?.posts.length" class="workbench-user-post-list">
         <article v-for="post in userPage.posts" :key="post.id" class="workbench-user-post-row">
           <NuxtLink class="workbench-user-post-row__media" :to="createWorkbenchLocation('post', { postId: post.id })">
-            <img v-if="post.thumbUrl" :src="post.thumbUrl" :alt="post.title">
+            <img
+              v-if="post.thumbUrl"
+              :src="post.thumbUrl"
+              :alt="post.title"
+              decoding="async"
+              loading="lazy"
+            >
             <i v-else class="fa-solid fa-image" aria-hidden="true" />
           </NuxtLink>
 

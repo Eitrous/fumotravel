@@ -126,6 +126,10 @@ create index if not exists posts_status_created_at_idx
 create index if not exists posts_public_point_idx
   on public.posts (public_lat, public_lng);
 
+create index if not exists posts_approved_public_point_created_idx
+  on public.posts (public_lat, public_lng, created_at desc)
+  where status = 'approved';
+
 create index if not exists post_photos_post_id_sort_order_idx
   on public.post_photos (post_id, sort_order);
 

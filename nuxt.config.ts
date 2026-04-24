@@ -6,13 +6,12 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/i18n', '@vercel/analytics/nuxt', '@vercel/speed-insights'],
   css: [
-    '~/assets/css/main.css',
-    '@fortawesome/fontawesome-free/css/all.min.css',
-    'maplibre-gl/dist/maplibre-gl.css'
+    '~/assets/css/main.css'
   ],
   i18n: {
     strategy: 'no_prefix',
     defaultLocale: 'zh-CN',
+    baseUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
     langDir: 'locales',
     locales: [
       {

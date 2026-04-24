@@ -50,6 +50,15 @@ export type PublicMapCollection = GeoJSON.FeatureCollection<
   PublicMapFeatureProperties
 >
 
+export type PublicMapPointProperties = {
+  id: number
+}
+
+export type PublicMapPointCollection = GeoJSON.FeatureCollection<
+  GeoJSON.Point,
+  PublicMapPointProperties
+>
+
 export type PublicPostDetail = {
   id: number
   title: string
@@ -259,6 +268,7 @@ export const MAP_DARK_STYLE_URL =
   '/api/map/style/dark'
 export const MAP_DEFAULT_CENTER: [number, number] = [116.397389, 39.908722]
 export const MAP_DEFAULT_ZOOM = 1.55
+export const MAP_FETCH_BOUNDS_GRID_SIZE = 0.25
 export const MAX_TITLE_LENGTH = 80
 export const MAX_BODY_LENGTH = 1000
 export const MAX_SUGGESTION_LENGTH = 2000

@@ -202,12 +202,15 @@ export const signPhotoRows = async (
   photoRows: PhotoRow[],
   expiresIn = 60 * 30
 ) => {
-  const imageUrls = await signStorageObjects(event, photoRows.map((photo) => photo.image_path), expiresIn)
-  const thumbUrls = await signStorageObjects(event, photoRows.map((photo) => photo.thumb_path), expiresIn)
+  const urls = await signStorageObjects(
+    event,
+    photoRows.flatMap((photo) => [photo.image_path, photo.thumb_path]),
+    expiresIn
+  )
 
   return photoRows.map((photo) => ({
-    imageUrl: imageUrls.get(photo.image_path) ?? null,
-    thumbUrl: photo.thumb_path ? thumbUrls.get(photo.thumb_path) ?? null : null
+    imageUrl: urls.get(photo.image_path) ?? null,
+    thumbUrl: photo.thumb_path ? urls.get(photo.thumb_path) ?? null : null
   }))
 }
 
