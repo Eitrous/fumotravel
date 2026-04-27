@@ -47,6 +47,7 @@ export default defineNuxtConfig({
     r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
     r2Bucket: process.env.R2_BUCKET || 'fumo',
     r2Endpoint: process.env.R2_ENDPOINT,
+    r2PublicBaseUrl: process.env.R2_PUBLIC_BASE_URL || '',
     r2SignedUrlTtlSeconds: process.env.R2_SIGNED_URL_TTL_SECONDS || String(60 * 30),
     geocodeBaseUrl: process.env.GEOCODE_BASE_URL || 'https://nominatim.openstreetmap.org',
     geocodeUserAgent: process.env.GEOCODE_USER_AGENT || 'fumotravel/1.0',

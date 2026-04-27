@@ -14,6 +14,7 @@ type R2ResolvedConfig = {
   bucket: string
   accessKeyId: string
   secretAccessKey: string
+  publicBaseUrl: string
   signedUrlTtlSeconds: number
 }
 
@@ -70,6 +71,7 @@ const resolveR2Config = (event: H3Event): R2ResolvedConfig => {
   const bucket = asTrimmedString(runtimeConfig.r2Bucket)
   const accessKeyId = asTrimmedString(runtimeConfig.r2AccessKeyId)
   const secretAccessKey = asTrimmedString(runtimeConfig.r2SecretAccessKey)
+  const publicBaseUrl = asTrimmedString(runtimeConfig.r2PublicBaseUrl).replace(/\/+$/, '')
   const signedUrlTtlSeconds = toSignedUrlTtlSeconds(runtimeConfig.r2SignedUrlTtlSeconds)
 
   if (!endpoint) {
@@ -89,6 +91,7 @@ const resolveR2Config = (event: H3Event): R2ResolvedConfig => {
     bucket,
     accessKeyId,
     secretAccessKey,
+    publicBaseUrl,
     signedUrlTtlSeconds
   }
 }
@@ -224,40 +227,29 @@ const chunkArray = <T>(items: T[], chunkSize: number) => {
 export const createSignedDownloadUrlMap = async (
   event: H3Event,
   paths: Array<string | null | undefined>,
-  expiresIn?: number
+  _expiresIn?: number
 ) => {
   const uniquePaths = [...new Set(paths.filter(Boolean) as string[])]
   if (!uniquePaths.length) {
     return new Map<string, string>()
   }
 
-  const { client, config } = getR2Client(event)
-  const ttl = clampNumber(
-    Math.floor(Number(expiresIn) || config.signedUrlTtlSeconds),
-    MIN_SIGNED_URL_TTL_SECONDS,
-    MAX_SIGNED_URL_TTL_SECONDS
-  )
+  const { config } = getR2Client(event)
 
-  const signedEntries = await Promise.all(uniquePaths.map(async (path) => {
-    try {
-      const url = await getSignedUrl(
-        client,
-        new GetObjectCommand({
-          Bucket: config.bucket,
-          Key: path
-        }),
-        { expiresIn: ttl }
-      )
+  if (!config.publicBaseUrl) {
+    throw createServerConfigError('R2 public base URL is missing. Set R2_PUBLIC_BASE_URL.')
+  }
 
-      return [path, url] as const
-    } catch {
-      return null
-    }
-  }))
+  const toPublicObjectUrl = (path: string) => {
+    const encodedPath = path
+      .split('/')
+      .map(segment => encodeURIComponent(segment))
+      .join('/')
 
-  return new Map(
-    signedEntries.filter((entry): entry is readonly [string, string] => Boolean(entry))
-  )
+    return `${config.publicBaseUrl}/${encodedPath}`
+  }
+
+  return new Map(uniquePaths.map((path) => [path, toPublicObjectUrl(path)]))
 }
 
 export const createSignedUploadUrl = async (
