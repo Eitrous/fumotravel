@@ -1121,6 +1121,13 @@ html[data-theme="dark"] .workbench-user-post-row {
   border-radius: var(--radius-lg);
   border: 1px dashed rgba(20, 111, 116, 0.32);
   background: rgba(255, 251, 245, 0.68);
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.photo-drop--dragover {
+  border-color: rgba(20, 111, 116, 0.85);
+  border-style: solid;
+  background: rgba(20, 111, 116, 0.08);
 }
 
 .photo-preview {

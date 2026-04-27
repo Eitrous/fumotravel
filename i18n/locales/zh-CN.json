@@ -230,6 +230,7 @@
       "searchFailed": "地点搜索失败。",
       "selectPhoto": "请先选择至少一张要投稿的照片。",
       "tooManyPhotos": "一次最多可投稿 {max} 张照片。",
+      "invalidPhotoType": "仅支持上传图片文件。",
       "titleRequired": "请输入标题。",
       "exactRequired": "请先在地图上标注精确拍摄位置。",
       "publicRequired": "请先确认公开展示的位置。",
