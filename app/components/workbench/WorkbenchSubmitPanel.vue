@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDropZone } from '@vueuse/core'
 import type {
   EditablePostDetail,
   GeocodeResult,
@@ -447,23 +448,29 @@ const openPhotoPicker = () => {
   photoInputRef.value?.click()
 }
 
-const onFileChange = async (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const files = Array.from(input.files || [])
-
+const addFiles = async (files: File[]) => {
   errorMessage.value = ''
   successMessage.value = ''
-  input.value = ''
 
-  if (!files.length) {
+  const imageFiles = files.filter((file) => file.type.startsWith('image/'))
+  if (!imageFiles.length) {
+    if (files.length) {
+      errorMessage.value = t('submit.errors.invalidPhotoType')
+    }
+    return
+  }
+
+  if (uploading.value || loadingEditable.value) return
+  if (selectedPhotos.value.length >= MAX_POST_PHOTOS) {
+    errorMessage.value = t('submit.errors.tooManyPhotos', { max: MAX_POST_PHOTOS })
     return
   }
 
   const wasEmpty = selectedPhotos.value.length === 0
   const remainingSlots = MAX_POST_PHOTOS - selectedPhotos.value.length
-  const acceptedFiles = files.slice(0, Math.max(0, remainingSlots))
+  const acceptedFiles = imageFiles.slice(0, Math.max(0, remainingSlots))
 
-  if (acceptedFiles.length < files.length) {
+  if (acceptedFiles.length < imageFiles.length) {
     errorMessage.value = t('submit.errors.tooManyPhotos', { max: MAX_POST_PHOTOS })
   }
 
@@ -489,6 +496,22 @@ const onFileChange = async (event: Event) => {
     }
   }
 }
+
+const onFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const files = Array.from(input.files || [])
+  input.value = ''
+  await addFiles(files)
+}
+
+const photoDropZoneRef = ref<HTMLElement | null>(null)
+const { isOverDropZone: isPhotoDragOver } = useDropZone(photoDropZoneRef, {
+  dataTypes: (types) => types.some((type) => type.startsWith('image/')),
+  onDrop: (files) => {
+    if (!files?.length) return
+    void addFiles(Array.from(files))
+  }
+})
 
 const removePhoto = (photoId: string) => {
   const index = selectedPhotos.value.findIndex((photo) => photo.id === photoId)
@@ -987,7 +1010,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="photo-drop">
+      <div ref="photoDropZoneRef" class="photo-drop" :class="{ 'photo-drop--dragover': isPhotoDragOver }">
         <input
           ref="photoInputRef"
           :key="fileInputKey"

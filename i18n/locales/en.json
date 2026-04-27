@@ -230,6 +230,7 @@
       "searchFailed": "Place search failed.",
       "selectPhoto": "Please choose at least one photo to submit.",
       "tooManyPhotos": "You can submit up to {max} photos.",
+      "invalidPhotoType": "Only image files can be uploaded.",
       "titleRequired": "Please enter a title.",
       "exactRequired": "Please mark the exact shooting location on the map first.",
       "publicRequired": "Please confirm the public location first.",
